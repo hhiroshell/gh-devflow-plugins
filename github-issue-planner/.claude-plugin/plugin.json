@@ -1,0 +1,8 @@
+{
+  "name": "github-issue-planner",
+  "version": "0.1.0",
+  "description": "Create implementation plans for GitHub issues and post them as comments",
+  "author": {
+    "name": "hhiroshell"
+  }
+}
