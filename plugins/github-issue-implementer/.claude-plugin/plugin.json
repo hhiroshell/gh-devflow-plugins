@@ -1,0 +1,8 @@
+{
+  "name": "github-issue-implementer",
+  "version": "0.1.0",
+  "description": "Implement GitHub issues by following implementation plans and creating PRs",
+  "author": {
+    "name": "hhiroshell"
+  }
+}

@@ -11,6 +11,7 @@ This repository contains plugins designed to streamline development workflows th
 | Plugin | Description |
 |--------|-------------|
 | [github-issue-planner](./plugins/github-issue-planner) | Create implementation plans for GitHub issues and post them as comments |
+| [github-issue-implementer](./plugins/github-issue-implementer) | Implement GitHub issues by following implementation plans and creating PRs |
 
 ## Installation
 
@@ -26,7 +27,16 @@ Then install plugins from the marketplace:
 
 ```
 /plugin install github-issue-planner@gh-devflow-plugins
+/plugin install github-issue-implementer@gh-devflow-plugins
 ```
+
+## Recommended Workflow
+
+These plugins work best together:
+
+1. **Plan**: Use `/plan-issue <number>` to analyze an issue and generate an implementation plan
+2. **Review**: Review and refine the plan on GitHub
+3. **Implement**: Use `/implement-issue <number>` to implement the plan and create a PR
 
 ## Prerequisites
 
