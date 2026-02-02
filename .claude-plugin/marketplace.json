@@ -1,0 +1,22 @@
+{
+  "name": "hhiroshell-plugins",
+  "owner": {
+    "name": "hhiroshell"
+  },
+  "metadata": {
+    "description": "Claude Code plugins collection by hhiroshell"
+  },
+  "plugins": [
+    {
+      "name": "github-issue-planner",
+      "source": "./plugins/github-issue-planner",
+      "description": "Create implementation plans for GitHub issues and post them as comments",
+      "version": "0.1.0",
+      "author": {
+        "name": "hhiroshell"
+      },
+      "repository": "https://github.com/hhiroshell/claude-plugins",
+      "keywords": ["github", "planning", "issues"]
+    }
+  ]
+}
