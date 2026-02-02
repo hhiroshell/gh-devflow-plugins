@@ -1,10 +1,10 @@
 {
-  "name": "hhiroshell-plugins",
+  "name": "gh-devflow-plugins",
   "owner": {
     "name": "hhiroshell"
   },
   "metadata": {
-    "description": "Claude Code plugins collection by hhiroshell"
+    "description": "Claude Code plugins for GitHub driven code development workflow"
   },
   "plugins": [
     {
@@ -15,8 +15,8 @@
       "author": {
         "name": "hhiroshell"
       },
-      "repository": "https://github.com/hhiroshell/claude-plugins",
-      "keywords": ["github", "planning", "issues"]
+      "repository": "https://github.com/hhiroshell/gh-devflow-plugins",
+      "keywords": ["github", "planning", "issues", "workflow"]
     }
   ]
 }
