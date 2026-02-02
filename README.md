@@ -1,4 +1,4 @@
-# gh-devflow-plugins
+# GitHub Development Flow Plugins
 
 A collection of Claude Code plugins for GitHub driven code development workflow.
 
@@ -14,16 +14,18 @@ This repository contains plugins designed to streamline development workflows th
 
 ## Installation
 
-To use these plugins with Claude Code, add this repository as a plugin source:
+To use these plugins with Claude Code, add this repository as a plugin marketplace.
 
-```bash
-claude mcp add-json gh-devflow-plugins '{"type":"url","url":"https://raw.githubusercontent.com/hhiroshell/gh-devflow-plugins/main/.claude-plugin/marketplace.json"}'
+From within Claude Code, run:
+
+```
+/plugin marketplace add hhiroshell/gh-devflow-plugins
 ```
 
-Or install individual plugins directly:
+Then install plugins from the marketplace:
 
-```bash
-claude --plugin-dir ./plugins/github-issue-planner
+```
+/plugin install github-issue-planner@gh-devflow-plugins
 ```
 
 ## Prerequisites
