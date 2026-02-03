@@ -8,26 +8,15 @@
   },
   "plugins": [
     {
-      "name": "github-issue-planner",
-      "source": "./plugins/github-issue-planner",
-      "description": "Create implementation plans for GitHub issues and post them as comments",
-      "version": "0.1.0",
+      "name": "github-devflow",
+      "source": "./github-devflow",
+      "description": "Plan and implement GitHub issues with structured workflows for issue-driven development",
+      "version": "0.2.0",
       "author": {
         "name": "hhiroshell"
       },
       "repository": "https://github.com/hhiroshell/gh-devflow-plugins",
-      "keywords": ["github", "planning", "issues", "workflow"]
-    },
-    {
-      "name": "github-issue-implementer",
-      "source": "./plugins/github-issue-implementer",
-      "description": "Implement GitHub issues by following implementation plans and creating PRs",
-      "version": "0.1.0",
-      "author": {
-        "name": "hhiroshell"
-      },
-      "repository": "https://github.com/hhiroshell/gh-devflow-plugins",
-      "keywords": ["github", "implementation", "pull-request", "workflow"]
+      "keywords": ["github", "issues", "planning", "implementation", "pull-request", "workflow", "devflow"]
     }
   ]
 }
