@@ -4,7 +4,7 @@ A Claude Code plugin for GitHub issue-driven development workflows. Plan and imp
 
 ## Features
 
-### Planning (`/plan-issue`)
+### Planning (`/plan`)
 
 - Fetches GitHub issue details using `gh` CLI
 - Analyzes your codebase to create context-aware implementation plans
@@ -16,12 +16,20 @@ A Claude Code plugin for GitHub issue-driven development workflows. Plan and imp
   - Potential risks
 - Posts the plan directly as an issue comment for review on GitHub
 
-### Implementation (`/implement-issue`)
+### Implementation (`/implement`)
 
 - **Fetch Implementation Plans**: Reads implementation plans from GitHub issue descriptions, comments, and replies
 - **Automated Implementation**: Implements code changes following the plan
 - **PR Creation**: Creates a pull request with proper linking to the issue
 - **Issue Updates**: Comments on the issue with PR link and adds status label
+
+### Reply to PR Comments (`/reply`)
+
+- Fetches unresolved review threads from a pull request
+- Filters threads where the latest comment is from another user
+- Analyzes comments with full codebase context
+- Generates thoughtful replies addressing reviewer concerns
+- Posts replies directly to the PR threads
 
 ## Prerequisites
 
@@ -40,12 +48,12 @@ A Claude Code plugin for GitHub issue-driven development workflows. Plan and imp
 ### Plan an Issue
 
 ```
-/plan-issue <issue-number>
+/plan <issue-number>
 ```
 
 Example:
 ```
-/plan-issue 123
+/plan 123
 ```
 
 This will analyze issue #123, explore the codebase, generate an implementation plan, and post it as a comment on the issue.
@@ -53,12 +61,12 @@ This will analyze issue #123, explore the codebase, generate an implementation p
 ### Implement an Issue
 
 ```
-/implement-issue <issue-number>
+/implement <issue-number>
 ```
 
 Example:
 ```
-/implement-issue 123
+/implement 123
 ```
 
 This will:
@@ -69,18 +77,37 @@ This will:
 5. Comment on the issue with the PR link
 6. Add `implementation-started` label to the issue
 
+### Reply to PR Comments
+
+```
+/reply <pr-number>
+```
+
+Example:
+```
+/reply 456
+```
+
+This will:
+1. Fetch all review threads from PR #456
+2. Filter for unresolved threads or threads where the latest comment is from another user
+3. Analyze each comment with codebase context
+4. Generate and post thoughtful replies to each thread
+
 ## Recommended Workflow
 
-1. **Plan**: Use `/plan-issue <number>` to analyze an issue and generate an implementation plan
+1. **Plan**: Use `/plan <number>` to analyze an issue and generate an implementation plan
 2. **Review**: Review and refine the plan on GitHub
-3. **Implement**: Use `/implement-issue <number>` to implement the plan and create a PR
+3. **Implement**: Use `/implement <number>` to implement the plan and create a PR
+4. **Reply**: Use `/reply <pr-number>` to respond to PR review comments
 
 ## Skills
 
 | Skill | Description |
 |-------|-------------|
-| `/plan-issue` | Create and post an implementation plan for a GitHub issue |
-| `/implement-issue` | Implement a GitHub issue following the plan and create a PR |
+| `/plan` | Create and post an implementation plan for a GitHub issue |
+| `/implement` | Implement a GitHub issue following the plan and create a PR |
+| `/reply` | Reply to unresolved review threads on a pull request |
 
 ## Troubleshooting
 
@@ -90,7 +117,7 @@ Run `gh auth login` to authenticate with GitHub.
 
 ### "No implementation plan found"
 
-The `/implement-issue` skill looks for implementation plans in the issue body and comments. Use `/plan-issue` first to create a structured plan.
+The `/implement` skill looks for implementation plans in the issue body and comments. Use `/plan` first to create a structured plan.
 
 ### "Cannot create label"
 
