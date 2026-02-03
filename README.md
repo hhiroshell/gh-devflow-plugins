@@ -28,13 +28,21 @@ Then install the plugin from the marketplace:
 /plugin install github-devflow@gh-devflow-plugins
 ```
 
+## Skills
+
+### `/github-devflow:plan <issue-number>`
+
+Analyzes a GitHub issue and the codebase to generate a structured implementation plan. The plan includes affected files, step-by-step implementation guidance, testing approach, and potential risks. The plan is automatically posted as a comment on the issue for review.
+
+### `/github-devflow:implement <issue-number>`
+
+Implements a GitHub issue by reading the implementation plan from the issue comments, writing the code, and creating a pull request. Automatically links the PR to the issue and adds appropriate labels.
+
 ## Recommended Workflow
 
-The plugin provides two skills that work best together:
-
-1. **Plan**: Use `/plan-issue <number>` to analyze an issue and generate an implementation plan
+1. **Plan**: Use `/github-devflow:plan <number>` to analyze an issue and generate an implementation plan
 2. **Review**: Review and refine the plan on GitHub
-3. **Implement**: Use `/implement-issue <number>` to implement the plan and create a PR
+3. **Implement**: Use `/github-devflow:implement <number>` to implement the plan and create a PR
 
 ## Prerequisites
 
