@@ -1,5 +1,4 @@
 ---
-name: plan-issue
 description: Creates an implementation plan for a GitHub issue and posts it as a comment. Triggered when the user provides a GitHub issue number for planning.
 argument-hint: "<issue-number>"
 disable-model-invocation: true

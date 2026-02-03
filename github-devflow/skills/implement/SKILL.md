@@ -1,5 +1,4 @@
 ---
-name: implement-issue
 description: This skill should be used when the user asks to "implement an issue", "create a PR for issue", "implement issue #123", "turn this issue into code", or wants to implement a GitHub issue following an implementation plan and create a pull request.
 argument-hint: "<issue-number>"
 disable-model-invocation: true
