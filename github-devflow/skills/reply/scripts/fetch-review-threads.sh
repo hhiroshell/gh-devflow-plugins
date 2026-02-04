@@ -103,11 +103,12 @@ THREADS=$(fetch_threads)
 if [[ "$FILTER_ACTIONABLE" == "--filter-actionable" ]]; then
     # Filter for threads that:
     # 1. Are not resolved
-    # 2. Latest comment (last in array) does NOT contain "Claude Code" signature
+    # 2. Latest comment (last in array) does NOT contain the Claude Code signature
+    #    Signature pattern: "Reply generated with [Claude Code]"
     THREADS=$(echo "$THREADS" | jq '
         [.[] | select(
             .isResolved == false and
-            ((.comments.nodes[-1].body | test("Claude Code"; "i")) | not)
+            ((.comments.nodes[-1].body | test("Reply generated with \\[Claude Code\\]"; "i")) | not)
         )]
     ')
 fi
