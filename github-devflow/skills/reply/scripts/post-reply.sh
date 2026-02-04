@@ -10,6 +10,9 @@
 #   body        The reply message text
 #   body-file   Path to a file containing the reply message (use with --file)
 #
+# Note: A "Claude Code" signature is automatically appended to identify
+#       AI-generated replies for filtering in subsequent runs.
+#
 # Output: JSON with the created comment ID
 #
 # Examples:
@@ -45,6 +48,10 @@ else
         exit 1
     fi
 fi
+
+# Append Claude Code signature for identification in future filtering
+SIGNATURE=$'\n\n---\n*Reply generated with [Claude Code](https://claude.ai/code)*'
+BODY="${BODY}${SIGNATURE}"
 
 # Post the reply using GraphQL mutation
 RESULT=$(gh api graphql -f query='
