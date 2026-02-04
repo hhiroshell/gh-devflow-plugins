@@ -29,12 +29,12 @@ This skill provides two helper scripts in `scripts/`:
 Use the helper script to fetch review threads that need replies:
 
 ```bash
-bash ${CLAUDE_PLUGIN_ROOT}/scripts/fetch-review-threads.sh $ARGUMENTS --filter-actionable
+PR_NUMBER=$ARGUMENTS
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/fetch-review-threads.sh $PR_NUMBER --filter-actionable
 ```
 
 This returns JSON with:
 - `owner`, `repo`, `prNumber`: Repository context
-- `currentUser`: The authenticated user's login
 - `threads`: Array of threads requiring action
 - `totalCount`: Number of actionable threads
 
@@ -43,7 +43,7 @@ Each thread contains:
 - `isResolved`: Always `false` (filtered)
 - `path`: File path in the repository
 - `line`: Line number in the file
-- `comments.nodes[0]`: The latest comment with `author.login`, `body`, `createdAt`
+- `comments.nodes`: Array of all comments in the thread (latest comment is last)
 
 If no actionable threads are found (`totalCount: 0`), report that no replies are needed.
 
@@ -51,7 +51,7 @@ If no actionable threads are found (`totalCount: 0`), report that no replies are
 
 For each actionable thread:
 
-1. **Read the comment**: Parse `comments.nodes[0].body` to understand the reviewer's concern
+1. **Read all comments**: Parse the entire `comments.nodes` array to understand the full conversation context
 2. **Examine the code context**: Read the file at `path` around `line`
 3. **Analyze the codebase**: Use Grep and Glob to understand related code and patterns
 4. **Generate a thoughtful reply**: Address the reviewer's concern with specifics
@@ -60,9 +60,8 @@ When generating replies:
 - Be concise but thorough
 - Reference specific code when relevant
 - Acknowledge valid points
-- Explain reasoning for decisions
-- If changes were made, mention the fix
-- If changes are not needed, explain why respectfully
+- Suggest changes or improvements (but do NOT modify any files)
+- If suggesting a fix, explain what should be changed and why
 
 ### Step 3: Post Replies
 
@@ -91,6 +90,14 @@ After processing all threads, provide a summary:
 - Any errors encountered
 
 ## Important Guidelines
+
+### No Code Changes
+
+**This skill must NOT modify any files.** Only suggest changes in replies:
+- Do NOT use Write or Edit tools
+- Do NOT create or modify any files
+- Only read files for context and analysis
+- Suggest code changes in the reply text, not by editing files
 
 ### Reply Quality
 

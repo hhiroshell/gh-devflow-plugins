@@ -32,9 +32,6 @@ REPO_INFO=$(gh repo view --json owner,name --jq '"\(.owner.login) \(.name)"')
 OWNER=$(echo "$REPO_INFO" | cut -d' ' -f1)
 REPO=$(echo "$REPO_INFO" | cut -d' ' -f2)
 
-# Get current user login for filtering
-CURRENT_USER=$(gh api user --jq '.login')
-
 # Fetch review threads with pagination support
 fetch_threads() {
     local after=""
@@ -64,7 +61,7 @@ query {
           line
           startLine
           diffSide
-          comments(last: 1) {
+          comments(first: 100) {
             nodes {
               id
               author { login }
@@ -106,11 +103,11 @@ THREADS=$(fetch_threads)
 if [[ "$FILTER_ACTIONABLE" == "--filter-actionable" ]]; then
     # Filter for threads that:
     # 1. Are not resolved
-    # 2. Latest comment does NOT contain "Claude Code" signature
+    # 2. Latest comment (last in array) does NOT contain "Claude Code" signature
     THREADS=$(echo "$THREADS" | jq '
         [.[] | select(
             .isResolved == false and
-            ((.comments.nodes[0].body | test("Claude Code"; "i")) | not)
+            ((.comments.nodes[-1].body | test("Claude Code"; "i")) | not)
         )]
     ')
 fi
@@ -120,13 +117,11 @@ jq -n \
     --arg owner "$OWNER" \
     --arg repo "$REPO" \
     --argjson pr "$PR_NUMBER" \
-    --arg currentUser "$CURRENT_USER" \
     --argjson threads "$THREADS" \
     '{
         owner: $owner,
         repo: $repo,
         prNumber: $pr,
-        currentUser: $currentUser,
         threads: $threads,
         totalCount: ($threads | length)
     }'
