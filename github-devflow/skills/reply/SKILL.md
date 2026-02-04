@@ -9,78 +9,47 @@ allowed-tools: Bash, Read, Grep, Glob
 
 Reply to comments on a GitHub pull request by analyzing unresolved review threads and comments from other users, generating thoughtful responses based on codebase context, and posting replies directly.
 
+## Helper Scripts
+
+This skill provides two helper scripts in `scripts/`:
+
+| Script | Purpose |
+|--------|---------|
+| `fetch-review-threads.sh` | Fetch review threads from a PR with optional filtering |
+| `post-reply.sh` | Post a reply to a review thread |
+
 ## Workflow
 
-### Step 1: Fetch PR Information
+### Step 1: Fetch Actionable Threads
 
-Retrieve the pull request details and identify the current user:
-
-```bash
-gh api user --jq '.login'
-```
-
-Store the current user's login to filter out self-authored comments.
-
-### Step 2: Fetch Review Threads
-
-Query review threads using GitHub GraphQL API:
+Use the helper script to fetch review threads that need replies:
 
 ```bash
-gh api graphql -f query='
-query($owner:String!,$repo:String!,$pr:Int!) {
-  repository(owner:$owner,name:$repo) {
-    pullRequest(number:$pr) {
-      id
-      reviewThreads(first:100) {
-        pageInfo {
-          hasNextPage
-          endCursor
-        }
-        nodes {
-          id
-          isResolved
-          path
-          line
-          comments(last:1) {
-            nodes {
-              id
-              author { login }
-              body
-              createdAt
-            }
-          }
-        }
-      }
-    }
-  }
-}' -F owner='{owner}' -F repo='{repo}' -F pr=$ARGUMENTS
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/fetch-review-threads.sh $ARGUMENTS --filter-actionable
 ```
 
-Extract owner and repo from the current git remote:
+This returns JSON with:
+- `owner`, `repo`, `prNumber`: Repository context
+- `currentUser`: The authenticated user's login
+- `threads`: Array of threads requiring action
+- `totalCount`: Number of actionable threads
 
-```bash
-gh repo view --json owner,name --jq '"\(.owner.login) \(.name)"'
-```
+Each thread contains:
+- `id`: Thread ID for posting replies (e.g., `PRRT_xxx`)
+- `isResolved`: Always `false` (filtered)
+- `path`: File path in the repository
+- `line`: Line number in the file
+- `comments.nodes[0]`: The latest comment with `author.login`, `body`, `createdAt`
 
-### Step 3: Filter Actionable Threads
+If no actionable threads are found (`totalCount: 0`), report that no replies are needed.
 
-Identify threads requiring replies based on these criteria:
-
-1. **Unresolved threads** (`isResolved == false`)
-2. **Latest comment is from another user** (not the current user)
-
-Filter logic:
-- Skip threads where `isResolved == true`
-- Skip threads where the latest comment author matches the current user
-- Include all remaining threads as actionable
-
-### Step 4: Analyze and Generate Replies
+### Step 2: Analyze and Generate Replies
 
 For each actionable thread:
 
-1. **Read the comment**: Understand what the reviewer is asking or suggesting
-2. **Examine the code context**: Read the file at the specified path and line
-3. **Analyze the codebase**: Use Grep and Glob to understand related code, patterns, and context
+1. **Read the comment**: Parse `comments.nodes[0].body` to understand the reviewer's concern
+2. **Examine the code context**: Read the file at `path` around `line`
+3. **Analyze the codebase**: Use Grep and Glob to understand related code and patterns
 4. **Generate a thoughtful reply**: Address the reviewer's concern with specifics
 
 When generating replies:
@@ -91,28 +60,31 @@ When generating replies:
 - If changes were made, mention the fix
 - If changes are not needed, explain why respectfully
 
-### Step 5: Post Replies
+### Step 3: Post Replies
 
-Post each reply using the GraphQL mutation:
+Post each reply using the helper script:
 
 ```bash
-gh api graphql -f query='
-mutation($thread:ID!,$body:String!) {
-  addPullRequestReviewThreadReply(input:{
-    pullRequestReviewThreadId:$thread
-    body:$body
-  }) {
-    comment { id }
-  }
-}' -f thread="$THREAD_ID" -f body="$REPLY_BODY"
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/post-reply.sh "<thread-id>" "<reply-body>"
 ```
 
-### Step 6: Report Summary
+Or for longer replies, write to a file first:
+
+```bash
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/post-reply.sh --file "<thread-id>" /tmp/reply.md
+```
+
+The script returns JSON with:
+- `success`: Boolean indicating success
+- `comment.id`: The created comment's ID
+- `comment.url`: URL to the comment
+
+### Step 4: Report Summary
 
 After processing all threads, provide a summary:
 - Number of threads processed
 - Number of replies posted
-- Any threads that were skipped and why
+- Any errors encountered
 
 ## Important Guidelines
 
@@ -137,9 +109,31 @@ After processing all threads, provide a summary:
 - If no actionable threads are found, report that no replies are needed
 - If posting a reply fails, report the error and continue with remaining threads
 
-### Pagination
+## Script Reference
 
-For PRs with many threads (>100), handle pagination:
-- Check `pageInfo.hasNextPage`
-- Use `endCursor` for subsequent queries
-- Process all pages before generating replies
+### fetch-review-threads.sh
+
+```
+Usage: fetch-review-threads.sh <pr-number> [--filter-actionable]
+
+Options:
+  --filter-actionable  Filter to show only threads requiring action:
+                       - Unresolved threads
+                       - Latest comment is from another user
+
+Output: JSON with repository info and thread array
+```
+
+### post-reply.sh
+
+```
+Usage: post-reply.sh <thread-id> <body>
+       post-reply.sh --file <thread-id> <body-file>
+
+Arguments:
+  thread-id   The GraphQL ID of the review thread (e.g., PRRT_xxx)
+  body        The reply message text
+  body-file   Path to a file containing the reply message
+
+Output: JSON with success status and comment details
+```
