@@ -53,22 +53,13 @@ If the diff is large (more than 10 changed files), warn the user that the review
 
 ### Step 2: Dispatch Reviewer Agents
 
-Launch all 8 reviewer agents in parallel using the Task tool. Each agent runs with `subagent_type: "general-purpose"` to ensure a clean context.
+Launch all 8 reviewer agents in parallel using the Task tool. Use agent-specific subagent types (e.g., `github-devflow:logic-reviewer`). Each agent runs in its own isolated context with its system prompt, model, and tools automatically applied from the agent definition.
 
-For each agent, provide a prompt containing:
-1. The PR diff
-2. The list of changed files
-3. The base and head ref names (for git operations)
-4. The owner and repo (for GitHub API calls)
-5. Instructions to output findings as JSON
+For each agent, provide a prompt containing the PR context:
 
 **Prompt template for each agent:**
 
 ```
-You are acting as the [perspective]-reviewer agent.
-
-[Paste the agent's system prompt from the agent file]
-
 ## PR Information
 - Repository: {owner}/{repo}
 - PR #{pr_number}: {title}
@@ -81,7 +72,17 @@ You are acting as the [perspective]-reviewer agent.
 Review the changes and output your findings as JSON in the specified format.
 ```
 
-**Important:** Launch ALL agents in a single message using multiple Task tool calls so they run in parallel. Use `model` parameter matching each agent's configured model (sonnet or haiku).
+**Important:** Launch ALL agents in a single message using multiple Task tool calls so they run in parallel. Use the following subagent types:
+- `github-devflow:logic-reviewer`
+- `github-devflow:design-reviewer`
+- `github-devflow:security-reviewer`
+- `github-devflow:performance-reviewer`
+- `github-devflow:convention-reviewer`
+- `github-devflow:git-history-reviewer`
+- `github-devflow:pr-history-reviewer`
+- `github-devflow:docs-reviewer`
+
+The model for each agent is automatically determined from the agent's frontmatter (see the Review Perspectives table above for reference).
 
 ### Step 3: Collect and Aggregate Results
 
