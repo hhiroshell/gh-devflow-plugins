@@ -31,6 +31,19 @@ A Claude Code plugin for GitHub issue-driven development workflows. Plan and imp
 - Generates thoughtful replies addressing reviewer concerns
 - Posts replies directly to the PR threads
 
+### Multi-Perspective Code Review (`/code-review`)
+
+- Reviews a PR from 8 different perspectives using specialized agents in parallel
+- **Logic & Correctness**: Bugs, edge cases, error handling, race conditions
+- **Design & Maintainability**: Code structure, naming, SOLID principles
+- **Security**: Injection, auth issues, data exposure, OWASP concerns
+- **Performance**: Algorithmic complexity, memory usage, N+1 queries
+- **Convention Compliance**: CLAUDE.md and project convention adherence
+- **Git History Context**: Git blame analysis, regression risk from commit history
+- **PR History Context**: Past PR review comments and decisions on same files
+- **Documentation**: Missing or outdated docs for changed code
+- Aggregates all findings into a single GitHub PR review with line-specific comments
+
 ## Prerequisites
 
 - [GitHub CLI](https://cli.github.com/) (`gh`) installed and authenticated
@@ -77,6 +90,23 @@ This will:
 5. Comment on the issue with the PR link
 6. Add `implementation-started` label to the issue
 
+### Review a PR
+
+```
+/code-review <pr-number>
+```
+
+Example:
+```
+/code-review 456
+```
+
+This will:
+1. Fetch the PR diff and metadata
+2. Dispatch 8 specialized reviewer agents in parallel (logic, design, security, performance, convention, git history, PR history, documentation)
+3. Aggregate all findings into a single review
+4. Post the review to GitHub with line-specific comments and a summary
+
 ### Reply to PR Comments
 
 ```
@@ -99,7 +129,8 @@ This will:
 1. **Plan**: Use `/plan <number>` to analyze an issue and generate an implementation plan
 2. **Review**: Review and refine the plan on GitHub
 3. **Implement**: Use `/implement <number>` to implement the plan and create a PR
-4. **Reply**: Use `/reply <pr-number>` to respond to PR review comments
+4. **Code Review**: Use `/code-review <pr-number>` to get a multi-perspective code review
+5. **Reply**: Use `/reply <pr-number>` to respond to PR review comments
 
 ## Skills
 
@@ -108,6 +139,7 @@ This will:
 | `/plan` | Create and post an implementation plan for a GitHub issue |
 | `/implement` | Implement a GitHub issue following the plan and create a PR |
 | `/reply` | Reply to unresolved review threads on a pull request |
+| `/code-review` | Multi-perspective code review of a PR using 8 specialized agents |
 
 ## Troubleshooting
 
