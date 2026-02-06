@@ -23,14 +23,6 @@ A Claude Code plugin for GitHub issue-driven development workflows. Plan and imp
 - **PR Creation**: Creates a pull request with proper linking to the issue
 - **Issue Updates**: Comments on the issue with PR link and adds status label
 
-### Reply to PR Comments (`/reply`)
-
-- Fetches unresolved review threads from a pull request
-- Filters threads where the latest comment is from another user
-- Analyzes comments with full codebase context
-- Generates thoughtful replies addressing reviewer concerns
-- Posts replies directly to the PR threads
-
 ### Multi-Perspective Code Review (`/code-review`)
 
 - Reviews a PR from 8 different perspectives using specialized agents in parallel
@@ -43,6 +35,14 @@ A Claude Code plugin for GitHub issue-driven development workflows. Plan and imp
 - **PR History Context**: Past PR review comments and decisions on same files
 - **Documentation**: Missing or outdated docs for changed code
 - Aggregates all findings into a single GitHub PR review with line-specific comments
+
+### Reply to PR Comments (`/reply`)
+
+- Fetches unresolved review threads from a pull request
+- Filters threads where the latest comment is from another user
+- Analyzes comments with full codebase context
+- Generates thoughtful replies addressing reviewer concerns
+- Posts replies directly to the PR threads
 
 ## Prerequisites
 
@@ -138,8 +138,8 @@ This will:
 |-------|-------------|
 | `/plan` | Create and post an implementation plan for a GitHub issue |
 | `/implement` | Implement a GitHub issue following the plan and create a PR |
-| `/reply` | Reply to unresolved review threads on a pull request |
 | `/code-review` | Multi-perspective code review of a PR using 8 specialized agents |
+| `/reply` | Reply to unresolved review threads on a pull request |
 
 ## Troubleshooting
 
