@@ -44,12 +44,15 @@ Write your findings as a JSON object to the output. Use exactly this format:
     {
       "file": "path/to/file.ext",
       "line": 42,
+      "start_line": 40,
       "severity": "warning",
       "comment": "Description of the design issue..."
     }
   ]
 }
 ```
+
+The `start_line` field is optional - use it for findings that span multiple lines.
 
 If no issues are found, return `{"perspective": "design", "findings": []}`.
 

@@ -14,6 +14,7 @@
 #     {
 #       "path": "src/main.py",
 #       "line": 42,
+#       "start_line": 40,  (optional, for multi-line comments)
 #       "body": "Comment text..."
 #     },
 #     ...
@@ -39,6 +40,23 @@ if [[ -z "$PR_NUMBER" || -z "$REVIEW_BODY_FILE" || -z "$COMMENTS_JSON_FILE" ]]; 
     exit 1
 fi
 
+# Validate PR number is a positive integer
+if ! [[ "$PR_NUMBER" =~ ^[0-9]+$ ]]; then
+    echo "Error: PR number must be a positive integer, got: $PR_NUMBER" >&2
+    exit 1
+fi
+
+# Validate file paths are within /tmp/github-devflow:code-review/
+if ! [[ "$REVIEW_BODY_FILE" =~ ^/tmp/github-devflow:code-review/ ]]; then
+    echo "Error: Review body file must be in /tmp/github-devflow:code-review/ directory" >&2
+    exit 1
+fi
+
+if ! [[ "$COMMENTS_JSON_FILE" =~ ^/tmp/github-devflow:code-review/ ]]; then
+    echo "Error: Comments JSON file must be in /tmp/github-devflow:code-review/ directory" >&2
+    exit 1
+fi
+
 if [[ ! -f "$REVIEW_BODY_FILE" ]]; then
     echo "Error: Review body file not found: $REVIEW_BODY_FILE" >&2
     exit 1
@@ -49,17 +67,23 @@ if [[ ! -f "$COMMENTS_JSON_FILE" ]]; then
     exit 1
 fi
 
-# Read review body and append signature
+# Read review body and append skill-specific signature
 REVIEW_BODY=$(cat "$REVIEW_BODY_FILE")
-SIGNATURE=$'\n\n---\n*Review generated with [Claude Code](https://claude.ai/code)*'
+SIGNATURE=$'\n\n---\n*Review generated with [Claude Code](https://claude.ai/code) - github-devflow:code-review*'
 REVIEW_BODY="${REVIEW_BODY}${SIGNATURE}"
 
 # Read comments JSON
 COMMENTS_JSON=$(cat "$COMMENTS_JSON_FILE")
 
-# Validate comments JSON is an array
+# Validate comments JSON is an array with required fields
 if ! echo "$COMMENTS_JSON" | jq -e 'type == "array"' > /dev/null 2>&1; then
     echo "Error: Comments file must contain a JSON array" >&2
+    exit 1
+fi
+
+# Validate each comment has required fields (path, line, body)
+if ! echo "$COMMENTS_JSON" | jq -e 'all(has("path") and has("line") and has("body"))' > /dev/null 2>&1; then
+    echo "Error: Each comment must have 'path', 'line', and 'body' fields" >&2
     exit 1
 fi
 
@@ -69,16 +93,21 @@ OWNER=$(echo "$REPO_INFO" | cut -d' ' -f1)
 REPO=$(echo "$REPO_INFO" | cut -d' ' -f2)
 
 # Get the PR's latest commit SHA (required for review API)
-COMMIT_SHA=$(gh pr view "$PR_NUMBER" --json commits --jq '.commits[-1].oid')
+COMMIT_SHA=$(gh pr view "$PR_NUMBER" --json commits --jq '.commits[-1].oid // empty')
+if [[ -z "$COMMIT_SHA" ]]; then
+    echo "Error: PR has no commits" >&2
+    exit 1
+fi
 
 # Build the review comments array for the API
 # Transform from our format to GitHub's API format
+# Supports optional start_line for multi-line comments
 API_COMMENTS=$(echo "$COMMENTS_JSON" | jq '[.[] | {
     path: .path,
     line: .line,
     body: .body,
     side: "RIGHT"
-}]')
+} + (if .start_line then {start_line: .start_line, start_side: "RIGHT"} else {} end)]')
 
 # Post the review using REST API
 RESULT=$(gh api \
@@ -90,14 +119,11 @@ RESULT=$(gh api \
         --argjson comments "$API_COMMENTS" \
         '{body: $body, commit_id: $commit, event: "COMMENT", comments: $comments}'))
 
-# Check for errors
-if echo "$RESULT" | jq -e '.message' > /dev/null 2>&1; then
-    ERROR_MSG=$(echo "$RESULT" | jq -r '.message')
-    if [[ "$ERROR_MSG" != "null" ]]; then
-        echo "Error posting review:" >&2
-        echo "$RESULT" | jq '.' >&2
-        exit 1
-    fi
+# Check for success by verifying the response has an id field
+if ! echo "$RESULT" | jq -e '.id' > /dev/null 2>&1; then
+    echo "Error posting review:" >&2
+    echo "$RESULT" | jq '.' >&2
+    exit 1
 fi
 
 # Output success response
