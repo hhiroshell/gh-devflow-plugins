@@ -18,13 +18,18 @@ Create a structured implementation plan for a GitHub issue by analyzing the issu
 Retrieve the GitHub issue information using the `gh` CLI:
 
 ```bash
-gh issue view $ARGUMENTS --json title,body,labels,assignees,milestone
+gh issue view $ARGUMENTS --json title,body,labels,assignees,milestone,comments
 ```
 
 Parse the response to understand:
 - Issue title and description
 - Labels (bug, feature, enhancement, etc.)
 - Any linked PRs or related issues mentioned in the body
+- **All comments**: Review the entire comment thread for:
+  - Additional requirements or clarifications
+  - Design decisions or constraints discussed
+  - Feedback on previous approaches
+  - Questions that need to be addressed in the plan
 
 ### Step 2: Analyze the Codebase
 
@@ -88,9 +93,11 @@ After posting, report success with the issue URL so the user can review the plan
 
 ### Issue Analysis
 - Read the full issue description carefully
+- **Review all comments** on the issue for additional context, clarifications, and evolving requirements
 - Consider labels to understand issue type (bug vs feature)
 - Check for any acceptance criteria or requirements mentioned
 - Look for related issues or PRs mentioned
+- Note any disagreements or open questions in the comment thread that may affect the plan
 
 ### Codebase Exploration
 - Start with targeted searches based on issue keywords
