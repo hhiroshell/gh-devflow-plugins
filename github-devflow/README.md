@@ -44,6 +44,16 @@ A Claude Code plugin for GitHub issue-driven development workflows. Plan and imp
 - Generates thoughtful replies addressing reviewer concerns
 - Posts replies directly to the PR threads
 
+### Fix PR Review Comments (`/fix`)
+
+- Fetches unresolved review threads from a pull request
+- Analyzes each thread and autonomously decides the appropriate action:
+  - **Fix**: Makes code changes to address the concern and auto-commits
+  - **New Issue**: Creates a GitHub issue to track the problem for later
+  - **Won't Fix**: Skips threads that are minor suggestions or already addressed
+- Replies to each thread reporting the action taken
+- Pushes all commits and provides a summary of actions
+
 ## Prerequisites
 
 - [GitHub CLI](https://cli.github.com/) (`gh`) installed and authenticated
@@ -124,6 +134,25 @@ This will:
 3. Analyze each comment with codebase context
 4. Generate and post thoughtful replies to each thread
 
+### Fix PR Review Comments
+
+```
+/fix <pr-number>
+```
+
+Example:
+```
+/fix 456
+```
+
+This will:
+1. Fetch unresolved review threads from PR #456
+2. Analyze each thread and decide whether to fix, create an issue, or skip
+3. Make code changes and commit each fix individually
+4. Create GitHub issues for problems that need separate tracking
+5. Reply to each thread with the action taken
+6. Push all commits to the remote branch
+
 ## Recommended Workflow
 
 1. **Plan**: Use `/plan <number>` to analyze an issue and generate an implementation plan
@@ -131,6 +160,7 @@ This will:
 3. **Implement**: Use `/implement <number>` to implement the plan and create a PR
 4. **Code Review**: Use `/code-review <pr-number>` to get a multi-perspective code review
 5. **Reply**: Use `/reply <pr-number>` to respond to PR review comments
+6. **Fix**: Use `/fix <pr-number>` to fix code, create issues, or dismiss review comments
 
 ## Skills
 
@@ -140,6 +170,7 @@ This will:
 | `/implement` | Implement a GitHub issue following the plan and create a PR |
 | `/code-review` | Multi-perspective code review of a PR using 8 specialized agents |
 | `/reply` | Reply to unresolved review threads on a pull request |
+| `/fix` | Fix code, create issues, or dismiss PR review comments |
 
 ## Troubleshooting
 
