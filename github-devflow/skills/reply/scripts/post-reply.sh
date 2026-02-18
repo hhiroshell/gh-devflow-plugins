@@ -2,8 +2,13 @@
 #
 # Post a reply to a GitHub pull request review thread
 #
-# Usage: post-reply.sh <thread-id> <body>
-#        post-reply.sh --file <thread-id> <body-file>
+# Usage: post-reply.sh [--skill <name>] <thread-id> <body>
+#        post-reply.sh [--skill <name>] --file <thread-id> <body-file>
+#
+# Options:
+#   --skill <name>  Include skill identifier in signature (e.g., "reply", "fix")
+#                   Signature becomes: *Reply generated with [Claude Code](...) - github-devflow:<name>*
+#                   When omitted, uses generic signature without skill identifier.
 #
 # Arguments:
 #   thread-id   The GraphQL ID of the review thread (e.g., PRRT_xxx)
@@ -16,19 +21,31 @@
 # Output: JSON with the created comment ID
 #
 # Examples:
-#   ./post-reply.sh "PRRT_kwDONRxxx" "Thanks, I've fixed this in the latest commit."
-#   ./post-reply.sh --file "PRRT_kwDONRxxx" /tmp/reply.md
+#   ./post-reply.sh --skill reply "PRRT_kwDONRxxx" "Thanks, I've fixed this."
+#   ./post-reply.sh --skill fix --file "PRRT_kwDONRxxx" /tmp/reply.md
+#   ./post-reply.sh "PRRT_kwDONRxxx" "Backward-compatible usage without --skill"
 #
 
 set -euo pipefail
 
-# Parse arguments
+# Parse --skill option
+SKILL_NAME=""
+if [[ "${1:-}" == "--skill" ]]; then
+    SKILL_NAME="${2:-}"
+    if [[ -z "$SKILL_NAME" ]]; then
+        echo "Error: --skill requires a name argument" >&2
+        exit 1
+    fi
+    shift 2
+fi
+
+# Parse remaining arguments
 if [[ "${1:-}" == "--file" ]]; then
     THREAD_ID="${2:-}"
     BODY_FILE="${3:-}"
 
     if [[ -z "$THREAD_ID" || -z "$BODY_FILE" ]]; then
-        echo "Usage: post-reply.sh --file <thread-id> <body-file>" >&2
+        echo "Usage: post-reply.sh [--skill <name>] --file <thread-id> <body-file>" >&2
         exit 1
     fi
 
@@ -43,14 +60,18 @@ else
     BODY="${2:-}"
 
     if [[ -z "$THREAD_ID" || -z "$BODY" ]]; then
-        echo "Usage: post-reply.sh <thread-id> <body>" >&2
-        echo "       post-reply.sh --file <thread-id> <body-file>" >&2
+        echo "Usage: post-reply.sh [--skill <name>] <thread-id> <body>" >&2
+        echo "       post-reply.sh [--skill <name>] --file <thread-id> <body-file>" >&2
         exit 1
     fi
 fi
 
 # Append Claude Code signature for identification in future filtering
-SIGNATURE=$'\n\n---\n*Reply generated with [Claude Code](https://claude.ai/code)*'
+if [[ -n "$SKILL_NAME" ]]; then
+    SIGNATURE=$'\n\n---\n*Reply generated with [Claude Code](https://claude.ai/code) - github-devflow:'"${SKILL_NAME}"'*'
+else
+    SIGNATURE=$'\n\n---\n*Reply generated with [Claude Code](https://claude.ai/code)*'
+fi
 BODY="${BODY}${SIGNATURE}"
 
 # Post the reply using GraphQL mutation
