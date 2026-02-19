@@ -15,7 +15,7 @@ Reply to comments on a GitHub pull request by finding threads that need response
 
 ## Helper Scripts
 
-This skill provides two helper scripts in `scripts/`:
+This skill uses shared helper scripts in `scripts/` at the plugin root:
 
 | Script | Purpose |
 |--------|---------|
@@ -30,7 +30,7 @@ Use the helper script to fetch review threads that need replies:
 
 ```bash
 PR_NUMBER=$ARGUMENTS
-bash ${CLAUDE_PLUGIN_ROOT}/skills/reply/scripts/fetch-review-threads.sh $PR_NUMBER --filter-resolved --filter-skill reply
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/fetch-review-threads.sh $PR_NUMBER --filter-resolved --filter-skill reply
 ```
 
 This returns JSON with:
@@ -68,13 +68,13 @@ When generating replies:
 Post each reply using the helper script:
 
 ```bash
-bash ${CLAUDE_PLUGIN_ROOT}/skills/reply/scripts/post-reply.sh --skill reply "<thread-id>" "<reply-body>"
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/post-reply.sh --skill reply "<thread-id>" "<reply-body>"
 ```
 
 Or for longer replies, write to a file first:
 
 ```bash
-bash ${CLAUDE_PLUGIN_ROOT}/skills/reply/scripts/post-reply.sh --skill reply --file "<thread-id>" /tmp/reply.md
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/post-reply.sh --skill reply --file "<thread-id>" /tmp/reply.md
 ```
 
 The script returns JSON with:

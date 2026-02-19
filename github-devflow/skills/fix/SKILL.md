@@ -19,12 +19,12 @@ Process unresolved review threads on a pull request by analyzing each thread and
 
 ## Helper Scripts
 
-This skill reuses helper scripts from the `reply` skill:
+This skill uses shared helper scripts in `scripts/` at the plugin root:
 
 | Script | Purpose |
 |--------|---------|
-| `reply/scripts/fetch-review-threads.sh` | Fetch review threads from a PR with optional filtering |
-| `reply/scripts/post-reply.sh` | Post a reply to a review thread |
+| `fetch-review-threads.sh` | Fetch review threads from a PR with optional filtering |
+| `post-reply.sh` | Post a reply to a review thread |
 
 ## Workflow
 
@@ -34,7 +34,7 @@ Fetch unresolved review threads that need attention:
 
 ```bash
 PR_NUMBER=$ARGUMENTS
-bash ${CLAUDE_PLUGIN_ROOT}/skills/reply/scripts/fetch-review-threads.sh $PR_NUMBER --filter-resolved --filter-skill fix
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/fetch-review-threads.sh $PR_NUMBER --filter-resolved --filter-skill fix
 ```
 
 This returns JSON with:
@@ -143,13 +143,13 @@ No action taken: <brief explanation>
 Post each reply using:
 
 ```bash
-bash ${CLAUDE_PLUGIN_ROOT}/skills/reply/scripts/post-reply.sh --skill fix "<thread-id>" "<reply-body>"
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/post-reply.sh --skill fix "<thread-id>" "<reply-body>"
 ```
 
 Or for longer replies:
 
 ```bash
-bash ${CLAUDE_PLUGIN_ROOT}/skills/reply/scripts/post-reply.sh --skill fix --file "<thread-id>" /tmp/reply.md
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/post-reply.sh --skill fix --file "<thread-id>" /tmp/reply.md
 ```
 
 ### Step 5: Push and Report Summary
