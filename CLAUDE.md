@@ -18,6 +18,7 @@ gh-devflow-plugins/
 │   │   ├── reply/            # /reply - Reply to PR review threads
 │   │   ├── fix/              # /fix - Fix code, create issues, or dismiss review comments
 │   │   └── code-review/      # /code-review - Multi-perspective PR review
+│   ├── scripts/              # Shared helper scripts (fetch-review-threads.sh, post-reply.sh)
 │   └── agents/               # Specialized reviewer agents for code-review
 └── .claude-plugin/           # Marketplace manifest (marketplace.json)
 ```
@@ -42,7 +43,7 @@ The `agents/` directory contains specialized reviewer agents used by `/code-revi
 All agents output findings as JSON with a standard schema: `{perspective, findings: [{file, line, start_line?, severity, comment}]}`.
 
 ### Helper Scripts
-Shell scripts in `skills/*/scripts/` handle GitHub API interactions:
+Shell scripts in `scripts/` and `skills/code-review/scripts/` handle GitHub API interactions:
 - Input validation (PR numbers, file paths)
 - `gh` CLI calls for fetching/posting data
 - JSON transformation with `jq`
