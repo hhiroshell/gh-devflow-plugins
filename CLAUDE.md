@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This repository contains Claude Code plugins for GitHub-driven development workflows. The main plugin is `github-devflow`, which provides skills for planning, implementing, reviewing, and replying to GitHub issues and PRs.
+This repository contains Claude Code plugins for GitHub-driven development workflows. The main plugin is `github-devflow`, which provides skills for planning, implementing, reviewing, fixing, and replying to GitHub issues and PRs.
 
 ## Repository Structure
 
@@ -16,6 +16,7 @@ gh-devflow-plugins/
 │   │   ├── plan/             # /plan - Create implementation plans for issues
 │   │   ├── implement/        # /implement - Implement issues and create PRs
 │   │   ├── reply/            # /reply - Reply to PR review threads
+│   │   ├── fix/              # /fix - Fix code, create issues, or dismiss review comments
 │   │   └── code-review/      # /code-review - Multi-perspective PR review
 │   └── agents/               # Specialized reviewer agents for code-review
 └── .claude-plugin/           # Marketplace manifest (marketplace.json)
@@ -51,6 +52,6 @@ Scripts validate file paths are within `/tmp/github-devflow:code-review/` for se
 ## Development Notes
 
 - All GitHub operations use the `gh` CLI (requires authentication via `gh auth login`)
-- Skills should not modify repository files directly; they analyze and post comments
+- Most skills should not modify repository files directly; they analyze and post comments. Exceptions: `/implement` creates code and PRs, `/fix` makes code changes to address review feedback
 - The `/code-review` skill launches 8 reviewer agents in parallel using the Task tool
 - Review signatures include skill identifiers for filtering (e.g., `github-devflow:code-review`)
