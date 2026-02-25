@@ -154,7 +154,9 @@ No action taken: current naming follows the project's established conventions.
 Post each reply using:
 
 ```bash
-bash ${CLAUDE_PLUGIN_ROOT}/scripts/post-reply.sh --skill fix --file "<thread-id>" /tmp/reply.md
+mkdir -p /tmp/github-devflow:fix/${REPO}/${PR_NUMBER}
+# Write reply body to /tmp/github-devflow:fix/${REPO}/${PR_NUMBER}/reply.md
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/post-reply.sh --skill fix --file "<thread-id>" /tmp/github-devflow:fix/${REPO}/${PR_NUMBER}/reply.md
 ```
 
 For threads with a single topic where the reply is short, inline form is also acceptable:
@@ -219,6 +221,10 @@ Provide a summary of all actions taken:
 - Follow existing code patterns and conventions
 - Make minimal, focused changes to address the specific concern
 - Do not introduce unrelated changes alongside the fix
+
+### Temp File Usage
+
+- When creating temp files, use only the `/tmp/github-devflow:fix/` directory
 
 ### Error Handling
 

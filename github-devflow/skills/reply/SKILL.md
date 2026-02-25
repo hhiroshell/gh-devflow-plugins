@@ -2,7 +2,7 @@
 description: This skill should be used when the user asks to "reply to PR comments", "respond to review comments", "reply to PR #123", "answer PR feedback", or wants to respond to unresolved review threads or comments from other users on a pull request.
 argument-hint: "<pr-number>"
 disable-model-invocation: true
-allowed-tools: Bash, Read, Grep, Glob
+allowed-tools: Bash, Read, Write, Grep, Glob
 ---
 
 # GitHub PR Comment Replier
@@ -74,7 +74,9 @@ bash ${CLAUDE_PLUGIN_ROOT}/scripts/post-reply.sh --skill reply "<thread-id>" "<r
 Or for longer replies, write to a file first:
 
 ```bash
-bash ${CLAUDE_PLUGIN_ROOT}/scripts/post-reply.sh --skill reply --file "<thread-id>" /tmp/reply.md
+mkdir -p /tmp/github-devflow:reply/${REPO}/${PR_NUMBER}
+# Write reply body to /tmp/github-devflow:reply/${REPO}/${PR_NUMBER}/reply.md
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/post-reply.sh --skill reply --file "<thread-id>" /tmp/github-devflow:reply/${REPO}/${PR_NUMBER}/reply.md
 ```
 
 The script returns JSON with:
@@ -93,11 +95,12 @@ After processing all threads, provide a summary:
 
 ### No Code Changes
 
-**This skill must NOT modify any files.** Only suggest changes in replies:
-- Do NOT use Write or Edit tools
-- Do NOT create or modify any files
+**This skill must NOT modify any repository files.** Only suggest changes in replies:
+- Do NOT use Edit tools
+- Do NOT create or modify any repository files
 - Only read files for context and analysis
 - Suggest code changes in the reply text, not by editing files
+- The Write tool is permitted ONLY for creating temp files under `/tmp/github-devflow:reply/` for the reply posting process
 
 ### Reply Quality
 
