@@ -7,7 +7,7 @@ allowed-tools: Bash, Read, Write, Edit, Grep, Glob
 
 # GitHub PR Review Fixer
 
-Process unresolved review threads on a pull request by analyzing each thread and taking the appropriate action: fix the code, create a new issue, or dismiss with no action. After all actions are taken, reply to each thread reporting the results.
+Process unresolved review threads on a pull request. A single thread may contain multiple distinct topics (e.g., "fix the null check here, also the error handling module should be refactored, and the naming looks fine"). For each thread, identify every distinct topic and independently decide the appropriate action per topic: fix the code, create a new issue, or dismiss with no action. After all actions are taken, reply to each thread with a consolidated report covering every topic.
 
 **Action types:**
 
@@ -50,21 +50,24 @@ Each thread contains:
 
 If no actionable threads are found (`totalCount: 0`), report that no action is needed.
 
-### Step 2: Analyze Each Thread and Decide Action
+### Step 2: Analyze Each Thread and Identify Topics
 
-For each thread, read all comments and examine the code context to decide the appropriate action.
+For each thread, read all comments, examine the code context, and identify every distinct topic raised. A single thread may contain multiple independent concerns — each one gets its own action.
 
 1. **Read all comments**: Parse `comments.nodes` to understand the full conversation
 2. **Examine the code**: Read the file at `path` around `line` to understand the context
 3. **Analyze the codebase**: Use Grep and Glob to understand related patterns
-4. **Decide action**: Choose one of:
+4. **Identify distinct topics**: Break the thread into separate, independent concerns. Each topic is a single actionable point (e.g., "fix the null check", "refactor error handling", "naming looks fine").
+5. **Decide action per topic**: For each topic independently, choose one of:
    - **fix** - The concern is valid and can be addressed with a code change now
    - **new issue** - The concern is valid but requires broader changes, is out of scope for this PR, or needs further discussion
    - **won't fix** - The suggestion is a minor style preference, already addressed, or not applicable
 
+Build a list of `(topic, action)` pairs for each thread. A thread with three topics might produce: `("fix null check", fix)`, `("refactor error handling", new issue)`, `("naming convention", won't fix)`.
+
 ### Step 3: Execute Actions
 
-Process each thread according to its decided action. Track all actions taken for the summary.
+Process each topic according to its decided action. A single thread may produce multiple actions (e.g., two fixes and one new issue). Track all actions taken for the summary.
 
 #### Action: fix
 
@@ -116,40 +119,48 @@ No code changes or issue creation needed. Record: brief reason why no action was
 
 ### Step 4: Reply to Each Thread
 
-After executing all actions, reply to each thread reporting what was done.
+After executing all actions, post a **single reply per thread** that covers every topic identified in that thread.
 
-For **fix** actions:
-
-```
-Fixed in commit <sha>.
-
-<brief description of the change made>
-```
-
-For **new issue** actions:
+Structure the reply with one section per topic, using this format:
 
 ```
-Created issue #<number> to track this.
+**<topic description>**: <action taken>
 
-<issue URL>
+<details for this topic>
 ```
 
-For **won't fix** actions:
+Use the appropriate detail format for each action type:
+
+- **fix**: `Fixed in commit <sha>. <brief description of the change made>`
+- **new issue**: `Created issue #<number> to track this. <issue URL>`
+- **won't fix**: `No action taken: <brief explanation>`
+
+Example reply for a thread with three topics:
 
 ```
-No action taken: <brief explanation>
+**Fix null check on user input**: fix
+
+Fixed in commit abc1234. Added null guard before accessing `user.name`.
+
+**Refactor error handling module**: new issue
+
+Created issue #42 to track this. https://github.com/owner/repo/issues/42
+
+**Naming convention**: won't fix
+
+No action taken: current naming follows the project's established conventions.
 ```
 
 Post each reply using:
 
 ```bash
-bash ${CLAUDE_PLUGIN_ROOT}/scripts/post-reply.sh --skill fix "<thread-id>" "<reply-body>"
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/post-reply.sh --skill fix --file "<thread-id>" /tmp/reply.md
 ```
 
-Or for longer replies:
+For threads with a single topic where the reply is short, inline form is also acceptable:
 
 ```bash
-bash ${CLAUDE_PLUGIN_ROOT}/scripts/post-reply.sh --skill fix --file "<thread-id>" /tmp/reply.md
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/post-reply.sh --skill fix "<thread-id>" "<reply-body>"
 ```
 
 ### Step 5: Push and Report Summary
@@ -163,9 +174,10 @@ git push
 Provide a summary of all actions taken:
 
 - Total threads processed
+- Total topics identified across all threads
 - Number of fixes committed (with commit SHAs)
 - Number of issues created (with issue numbers and URLs)
-- Number of threads dismissed
+- Number of topics dismissed
 - Any errors encountered
 
 ## Decision Guidelines
@@ -198,7 +210,7 @@ Provide a summary of all actions taken:
 
 ### Commit Discipline
 
-- One commit per fix for clear traceability
+- One commit per topic that receives a "fix" action, for clear traceability
 - Reference the PR number in each commit message
 - Only stage files that were intentionally changed
 
