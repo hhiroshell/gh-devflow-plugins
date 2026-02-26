@@ -22,24 +22,26 @@ jobs:
       - name: Validate version consistency
         run: |
           tag_version="${{ steps.tag.outputs.version }}"
+          tag_name="${GITHUB_REF_NAME}"
           plugin_version=$(jq -r '.version' github-devflow/.claude-plugin/plugin.json)
-          marketplace_version=$(jq -r '.plugins[0].version' .claude-plugin/marketplace.json)
+          marketplace_ref=$(jq -r '.plugins[0].source.ref' .claude-plugin/marketplace.json)
 
           echo "Tag version:         $tag_version"
+          echo "Tag name:            $tag_name"
           echo "plugin.json version: $plugin_version"
-          echo "marketplace version: $marketplace_version"
+          echo "marketplace.json ref: $marketplace_ref"
 
           if [ "$tag_version" != "$plugin_version" ]; then
             echo "::error::Tag version ($tag_version) does not match plugin.json version ($plugin_version)"
             exit 1
           fi
 
-          if [ "$tag_version" != "$marketplace_version" ]; then
-            echo "::error::Tag version ($tag_version) does not match marketplace.json version ($marketplace_version)"
+          if [ "$tag_name" != "$marketplace_ref" ]; then
+            echo "::error::Tag name ($tag_name) does not match marketplace.json ref ($marketplace_ref)"
             exit 1
           fi
 
-          echo "All versions match: $tag_version"
+          echo "All checks passed: version=$tag_version, ref=$tag_name"
 
       - name: Create GitHub Release
         env:

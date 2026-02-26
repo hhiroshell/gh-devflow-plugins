@@ -9,9 +9,12 @@
 #
 # This script:
 #   1. Validates the version format and prerequisites
-#   2. Updates version in both manifest files
-#   3. Commits the version bump
-#   4. Creates and pushes the tag
+#   2. Updates plugin.json version to the release version
+#   3. Updates marketplace.json ref to the release tag
+#   4. Commits and tags the release
+#   5. Bumps plugin.json to the next dev version (X.(Y+1).0-dev)
+#   6. Commits the dev version bump
+#   7. Pushes main and the tag
 #
 # The GitHub Actions workflow then validates version consistency
 # and creates a GitHub Release with auto-generated notes.
@@ -63,24 +66,43 @@ fi
 PLUGIN_JSON="github-devflow/.claude-plugin/plugin.json"
 MARKETPLACE_JSON=".claude-plugin/marketplace.json"
 
+# --- Release commit ---
+
 # Update version in plugin.json
-echo "Updating $PLUGIN_JSON ..."
+echo "Updating $PLUGIN_JSON to ${VERSION} ..."
 jq --arg v "$VERSION" '.version = $v' "$PLUGIN_JSON" > "${PLUGIN_JSON}.tmp"
 mv "${PLUGIN_JSON}.tmp" "$PLUGIN_JSON"
 
-# Update version in marketplace.json
-echo "Updating $MARKETPLACE_JSON ..."
-jq --arg v "$VERSION" '.plugins[0].version = $v' "$MARKETPLACE_JSON" > "${MARKETPLACE_JSON}.tmp"
+# Update ref in marketplace.json
+echo "Updating $MARKETPLACE_JSON ref to ${TAG} ..."
+jq --arg ref "$TAG" '.plugins[0].source.ref = $ref' "$MARKETPLACE_JSON" > "${MARKETPLACE_JSON}.tmp"
 mv "${MARKETPLACE_JSON}.tmp" "$MARKETPLACE_JSON"
 
-# Commit the version bump
-echo "Committing version bump ..."
+# Commit the release version
+echo "Committing release version ..."
 git add "$PLUGIN_JSON" "$MARKETPLACE_JSON"
 git commit -m "Bump version to ${VERSION}"
 
 # Create the tag
 echo "Creating tag $TAG ..."
 git tag "$TAG"
+
+# --- Dev version bump ---
+
+# Calculate next dev version: increment minor, reset patch, append -dev
+MAJOR=$(echo "$VERSION" | cut -d. -f1)
+MINOR=$(echo "$VERSION" | cut -d. -f2)
+NEXT_MINOR=$((MINOR + 1))
+DEV_VERSION="${MAJOR}.${NEXT_MINOR}.0-dev"
+
+# Update plugin.json to dev version
+echo "Bumping $PLUGIN_JSON to ${DEV_VERSION} for development ..."
+jq --arg v "$DEV_VERSION" '.version = $v' "$PLUGIN_JSON" > "${PLUGIN_JSON}.tmp"
+mv "${PLUGIN_JSON}.tmp" "$PLUGIN_JSON"
+
+# Commit the dev version bump
+git add "$PLUGIN_JSON"
+git commit -m "Bump version to ${DEV_VERSION} for development"
 
 # Push commit and tag
 echo "Pushing to origin ..."
@@ -89,4 +111,5 @@ git push origin "$TAG"
 
 echo ""
 echo "Release $TAG pushed successfully."
+echo "main is now at ${DEV_VERSION}."
 echo "The GitHub Actions workflow will create the release."

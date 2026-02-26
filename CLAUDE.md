@@ -62,14 +62,16 @@ Scripts validate file paths are within `/tmp/github-devflow:*/` for security.
 
 ## Release Flow
 
-Releases are automated via `.github/workflows/release.yml`. The workflow enforces that the git tag version matches both manifest files to ensure version immutability.
+Releases are automated via `.github/workflows/release.yml`. Claude Code uses `plugin.json` `.version` as a cache key, so each release must have a unique version and `main` must always differ from any released version.
 
-### Version files (must stay in sync)
-- `github-devflow/.claude-plugin/plugin.json` → `.version`
-- `.claude-plugin/marketplace.json` → `.plugins[0].version`
+### Version strategy
+- `github-devflow/.claude-plugin/plugin.json` `.version` — authoritative version (cache key). Set to `X.Y.Z` on release tags, `X.(Y+1).0-dev` on `main` between releases.
+- `.claude-plugin/marketplace.json` `.plugins[0].source.ref` — ref-based source pinned to the latest release tag (e.g., `v0.5.0`). No `version` field; version is determined by `plugin.json` at the ref'd commit.
 
 ### How to release
 1. Run `./scripts/release.sh <version>` (e.g., `./scripts/release.sh 0.5.0`)
-   - Updates version in both manifest files, commits, tags, and pushes
-2. The GitHub Actions workflow validates version consistency and creates a GitHub Release with auto-generated notes
-3. If the tag version doesn't match either manifest, the workflow fails with a clear error
+   - Sets `plugin.json` version to `0.5.0` and `marketplace.json` ref to `v0.5.0`
+   - Commits and tags `v0.5.0`
+   - Bumps `plugin.json` to `0.6.0-dev`, commits
+   - Pushes `main` and the tag
+2. The GitHub Actions workflow validates that `plugin.json` version matches the tag and `marketplace.json` ref matches the tag name, then creates a GitHub Release with auto-generated notes
