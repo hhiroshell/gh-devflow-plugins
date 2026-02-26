@@ -73,6 +73,20 @@ GitHub driven development treats GitHub Issues as the source of truth for requir
 - **Documentation**: Keeping discussions and decisions in GitHub where they belong
 - **Automation**: Reducing manual steps between planning and implementation
 
+## Releasing
+
+Releases are automated via GitHub Actions. The workflow enforces that the git tag version matches both manifest files to ensure version immutability.
+
+### Version files (must stay in sync)
+- `github-devflow/.claude-plugin/plugin.json` → `.version`
+- `.claude-plugin/marketplace.json` → `.plugins[0].version`
+
+### How to release
+1. Run `./scripts/release.sh <version>` (e.g., `./scripts/release.sh 0.5.0`)
+   - Updates version in both manifest files, commits, tags, and pushes
+2. The GitHub Actions workflow validates version consistency and creates a GitHub Release with auto-generated notes
+3. If the tag version doesn't match either manifest, the workflow fails with a clear error
+
 ## License
 
 MIT

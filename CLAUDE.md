@@ -10,17 +10,21 @@ This repository contains Claude Code plugins for GitHub-driven development workf
 
 ```
 gh-devflow-plugins/
-├── github-devflow/           # Main plugin
-│   ├── .claude-plugin/       # Plugin manifest (plugin.json with version)
-│   ├── skills/               # User-invokable skills (SKILL.md files)
-│   │   ├── plan/             # /plan - Create implementation plans for issues
-│   │   ├── implement/        # /implement - Implement issues and create PRs
-│   │   ├── reply/            # /reply - Reply to PR review threads
-│   │   ├── fix/              # /fix - Fix code, create issues, or dismiss review comments
-│   │   └── code-review/      # /code-review - Multi-perspective PR review
-│   ├── scripts/              # Shared helper scripts (fetch-review-threads.sh, post-reply.sh)
-│   └── agents/               # Specialized reviewer agents for code-review
-└── .claude-plugin/           # Marketplace manifest (marketplace.json)
+├── .claude-plugin/               # Marketplace manifest (marketplace.json)
+├── .github/
+│   └── workflows/
+│       └── release.yml           # Release automation (tag → GitHub Release)
+└── github-devflow/               # Main plugin
+    ├── .claude-plugin/           # Plugin manifest (plugin.json with version)
+    ├── agents/                   # Specialized reviewer agents for code-review
+    ├── scripts/                  # Shared helper scripts (fetch-review-threads.sh, post-reply.sh)
+    └── skills/                   # User-invokable skills (SKILL.md files)
+        ├── plan/                 # /plan - Create implementation plans for issues
+        ├── implement/            # /implement - Implement issues and create PRs
+        ├── reply/                # /reply - Reply to PR review threads
+        ├── fix/                  # /fix - Fix code, create issues, or dismiss review comments
+        └── code-review/          # /code-review - Multi-perspective PR review
+            └── scripts/          # Skill-specific scripts (fetch-pr-diff.sh, post-review.sh)
 ```
 
 ## Plugin Architecture
@@ -43,12 +47,11 @@ The `agents/` directory contains specialized reviewer agents used by `/code-revi
 All agents output findings as JSON with a standard schema: `{perspective, findings: [{file, line, start_line?, severity, comment}]}`.
 
 ### Helper Scripts
-Shell scripts in `scripts/` and `skills/code-review/scripts/` handle GitHub API interactions:
-- Input validation (PR numbers, file paths)
-- `gh` CLI calls for fetching/posting data
-- JSON transformation with `jq`
+Shell scripts handle GitHub API interactions via the `gh` CLI:
+- **Shared scripts** (`github-devflow/scripts/`): `fetch-review-threads.sh` (fetch PR threads with filtering), `post-reply.sh` (post replies with skill signatures)
+- **Code-review scripts** (`github-devflow/skills/code-review/scripts/`): `fetch-pr-diff.sh` (fetch PR diff and metadata), `post-review.sh` (post reviews with line-specific comments)
 
-Scripts validate file paths are within `/tmp/github-devflow:code-review/` for security.
+Scripts validate file paths are within `/tmp/github-devflow:*/` for security.
 
 ## Development Notes
 
@@ -56,3 +59,17 @@ Scripts validate file paths are within `/tmp/github-devflow:code-review/` for se
 - Most skills should not modify repository files directly; they analyze and post comments. Exceptions: `/implement` creates code and PRs, `/fix` makes code changes to address review feedback
 - The `/code-review` skill launches 8 reviewer agents in parallel using the Task tool
 - Review signatures include skill identifiers for filtering (e.g., `github-devflow:code-review`)
+
+## Release Flow
+
+Releases are automated via `.github/workflows/release.yml`. The workflow enforces that the git tag version matches both manifest files to ensure version immutability.
+
+### Version files (must stay in sync)
+- `github-devflow/.claude-plugin/plugin.json` → `.version`
+- `.claude-plugin/marketplace.json` → `.plugins[0].version`
+
+### How to release
+1. Run `./scripts/release.sh <version>` (e.g., `./scripts/release.sh 0.5.0`)
+   - Updates version in both manifest files, commits, tags, and pushes
+2. The GitHub Actions workflow validates version consistency and creates a GitHub Release with auto-generated notes
+3. If the tag version doesn't match either manifest, the workflow fails with a clear error
