@@ -91,7 +91,7 @@ query {
           comments(first: 100) {
             nodes {
               id
-              author { login }
+              author { login __typename }
               body
               createdAt
             }

@@ -23,6 +23,8 @@ gh-devflow-plugins/
         ├── implement/            # /implement - Implement issues and create PRs
         ├── reply/                # /reply - Reply to PR review threads
         ├── fix/                  # /fix - Fix code, create issues, or dismiss review comments
+        ├── watch/                # /watch - Watch a PR for AI-reviewer comments and auto reply+fix in a loop
+        │   └── scripts/          # Skill-specific scripts (watch-pr-comments.sh)
         └── code-review/          # /code-review - Multi-perspective PR review
             └── scripts/          # Skill-specific scripts (fetch-pr-diff.sh, post-review.sh)
 ```
