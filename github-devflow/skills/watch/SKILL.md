@@ -88,18 +88,22 @@ If any questions were posted this round, tell the user which threads await a rep
 
 After the fix pass pushes, the AI reviewer typically re-reviews. Return to **Step 2** to watch for the next round. When the user replies to a parked question, a later round detects it as an *answered question* and applies the fix.
 
+Keep a **running tally across all rounds** — replies posted, fixes committed (with SHAs), issues created, and questions parked (with URLs) — so the end-of-watch summary in Step 5 can cover the whole session.
+
 ### Step 4: Handle Timeout (keep watching)
 
 A `timeout` means no new comments arrived in the poll window — normal while a reviewer is still working. Re-invoke Step 2 to continue watching.
 
-To avoid watching forever when a review has quietly stalled: after **3 consecutive timeouts** with no activity, use `AskUserQuestion` to ask whether to keep watching or stop. The watch script already exits with `closed` if the PR is merged/closed, so no separate check is needed.
+To avoid watching forever when a review has quietly stalled: after **3 consecutive timeouts** with no activity, use `AskUserQuestion` to ask whether to keep watching or stop. If the user chooses to stop, go to **Step 5**. The watch script already exits with `closed` if the PR is merged/closed, so no separate check is needed.
 
 ### Step 5: Finish
 
-When `status` is `stop` or `closed`, end the loop and report a summary:
+The watch loop ends when the reviewer signals completion (`stop`), the PR is closed/merged (`closed`), or the user chooses to stop. On any of these, report an activity summary **in the Claude Code session — do not post it as a PR comment.** The per-thread replies, fixes, and questions were already posted to the PR during the rounds; this end-of-watch summary is for the session only.
 
-- Why watching ended (reviewer signalled completion, quoting the matched comment; or PR closed/merged)
-- Total watch rounds handled
+Draw it from the running tally kept across rounds (Step 3) and cover the whole watch:
+
+- Why watching ended (reviewer signalled completion, quoting the matched comment; PR closed/merged; or the user chose to stop)
+- Total watch rounds handled, and replies posted across all rounds
 - Fixes committed and pushed across all rounds (with commit SHAs), and any issues created by `fix`
 - **Any parked questions still awaiting the user's reply** (with their thread URLs) — a review can be signalled complete while a question is still open, so call these out explicitly rather than letting them be forgotten
 - Any threads left unaddressed or errors encountered
