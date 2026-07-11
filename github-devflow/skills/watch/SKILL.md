@@ -2,12 +2,12 @@
 description: This skill should be used when the user asks to "watch a PR", "watch PR #123", "watch for AI review comments", "auto-handle AI review", or "babysit this PR through review", or wants to continuously monitor a pull request for AI reviewer (bot) comments and automatically reply to and fix them until the reviewer reports no further comments.
 argument-hint: "<pr-number>"
 disable-model-invocation: true
-allowed-tools: Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion
+allowed-tools: Bash, Read, Write, Edit, Grep, Glob
 ---
 
 # GitHub PR AI-Review Watcher
 
-Continuously watch a pull request for review comments from AI reviewers — bot accounts such as GitHub Copilot or `coderabbitai[bot]`, as well as this plugin's own `/code-review` skill. Each time new comments appear, reply to them and apply fixes by driving the `reply` and `fix` skills, then keep watching. Stop when the reviewer signals the review is complete (e.g. a summary comment matching "there are no comments") or the PR is closed/merged.
+Continuously watch a pull request for review comments from AI reviewers — bot accounts such as GitHub Copilot or `coderabbitai[bot]`, as well as this plugin's own `/code-review` skill. Each time new comments appear, reply to them and apply fixes by driving the `reply` and `fix` skills, then keep watching. Stop when the reviewer signals the review is complete (e.g. a summary comment matching "there are no comments"), the PR is closed/merged, or the reviewer goes quiet (a poll window elapses with no new activity — see Step 4).
 
 This skill orchestrates a loop; the actual reply and fix work follows the `reply` and `fix` skills' documented workflows (read and execute their `SKILL.md` files) rather than reimplementing them.
 
@@ -53,9 +53,9 @@ The script prints a JSON object with a `status` field:
 | `status` | Meaning | Next action |
 |----------|---------|-------------|
 | `threads` | Actionable AI-reviewer threads are waiting | Go to Step 3 |
-| `stop` | Reviewer signalled the review is complete | Go to Step 5 |
-| `closed` | PR is merged or closed | Go to Step 5 |
-| `timeout` | No activity within the poll window | Go to Step 4 |
+| `stop` | Reviewer signalled the review is complete | Go to Step 4 |
+| `closed` | PR is merged or closed | Go to Step 4 |
+| `timeout` | No activity within the poll window (reviewer is quiet) | Go to Step 4 |
 
 ### Step 3: Classify and Handle Threads
 
@@ -67,7 +67,7 @@ When `status` is `threads`, classify each actionable thread, then act. The `repl
 - **Clear-cut** — a reviewer comment whose fix is obvious (typo, missing null check, mechanical refactor).
 - **Uncertain** — a reviewer comment whose fix is ambiguous, risky, touches broad or shared code, or has multiple reasonable approaches.
 
-**For uncertain threads, ask on the PR — do not use `AskUserQuestion`.**
+**For uncertain threads, ask on the PR — do not block the session for an answer.**
 
 Post the question as a reply on that thread so the user can answer inline on GitHub, and leave the code unchanged for that thread this round:
 
@@ -86,26 +86,26 @@ The question's `github-devflow:watch` signature becomes the thread's latest comm
 
 If any questions were posted this round, tell the user which threads await a reply — include each comment URL returned by `post-reply.sh` (the `comment.url` field). For example: "Posted 2 questions on PR #123 — reply on these threads and I'll apply your decision on the next check: <url1>, <url2>."
 
-After the fix pass pushes, the AI reviewer typically re-reviews. Return to **Step 2** to watch for the next round. When the user replies to a parked question, a later round detects it as an *answered question* and applies the fix.
+After the fix pass pushes, return to **Step 2** to watch for the reviewer's next round. If the reviewer re-reviews within the poll window, handle that round; if the window elapses with no new activity, the watch ends (Step 4). When the user replies to a parked question, a later round detects it as an *answered question* and applies the fix.
 
-Keep a **running tally across all rounds** — replies posted, fixes committed (with SHAs), issues created, and questions parked (with URLs) — so the end-of-watch summary in Step 5 can cover the whole session.
+Keep a **running tally across all rounds** — replies posted, fixes committed (with SHAs), issues created, and questions parked (with URLs) — so the end-of-watch summary in Step 4 can cover the whole session.
 
-### Step 4: Handle Timeout (keep watching)
+### Step 4: Finish
 
-A `timeout` means no new comments arrived in the poll window — normal while a reviewer is still working. Re-invoke Step 2 to continue watching.
+The watch loop ends on any of `stop`, `closed`, or `timeout`:
 
-To avoid watching forever when a review has quietly stalled: after **3 consecutive timeouts** with no activity, use `AskUserQuestion` to ask whether to keep watching or stop. If the user chooses to stop, go to **Step 5**. The watch script already exits with `closed` if the PR is merged/closed, so no separate check is needed.
+- `stop` — the reviewer signalled the review is complete.
+- `closed` — the PR was merged or closed.
+- `timeout` — the poll window elapsed with no new activity. Treat this as the reviewer having gone quiet and **stop watching** rather than polling again. (AI reviewers such as Copilot often do not re-review new commits unless their review is re-requested; if that is the case, re-request the review on GitHub and run `/watch` again.)
 
-### Step 5: Finish
-
-The watch loop ends when the reviewer signals completion (`stop`), the PR is closed/merged (`closed`), or the user chooses to stop. On any of these, report an activity summary **in the Claude Code session — do not post it as a PR comment.** The per-thread replies, fixes, and questions were already posted to the PR during the rounds; this end-of-watch summary is for the session only.
+On any of these, report an activity summary **in the Claude Code session — do not post it as a PR comment.** The per-thread replies, fixes, and questions were already posted to the PR during the rounds; this end-of-watch summary is for the session only.
 
 Draw it from the running tally kept across rounds (Step 3) and cover the whole watch:
 
-- Why watching ended (reviewer signalled completion, quoting the matched comment; PR closed/merged; or the user chose to stop)
+- Why watching ended (reviewer signalled completion, quoting the matched comment; PR closed/merged; or reviewer went quiet after a timeout)
 - Total watch rounds handled, and replies posted across all rounds
 - Fixes committed and pushed across all rounds (with commit SHAs), and any issues created by `fix`
-- **Any parked questions still awaiting the user's reply** (with their thread URLs) — a review can be signalled complete while a question is still open, so call these out explicitly rather than letting them be forgotten
+- **Any parked questions still awaiting the user's reply** (with their thread URLs) — a review can end while a question is still open, so call these out explicitly rather than letting them be forgotten
 - Any threads left unaddressed or errors encountered
 
 ## Important Guidelines
@@ -113,12 +113,12 @@ Draw it from the running tally kept across rounds (Step 3) and cover the whole w
 ### Confirmation Policy
 
 - Proceed autonomously on clear-cut fixes (obvious bugs, typos, missing null checks, mechanical refactors).
-- When a fix is ambiguous, risky, touches broad/shared code, or has multiple reasonable approaches, **do not change code and do not block with `AskUserQuestion`**. Instead, post the question as a reply on that PR thread (signed `github-devflow:watch`) and notify the user that a thread awaits their reply. Pick the fix up on a later round once they answer.
+- When a fix is ambiguous, risky, touches broad/shared code, or has multiple reasonable approaches, **do not change code and do not block the session waiting for an answer**. Instead, post the question as a reply on that PR thread (signed `github-devflow:watch`) and notify the user that a thread awaits their reply. Pick the fix up on a later round once they answer.
 - Never apply a fix the user declined; if they decline in their reply, note it in the thread and summary and move on.
 
 ### Loop Safety
 
-- Only the reviewer's stop signal, a closed/merged PR, or the user ending the session stops the loop.
+- The loop stops on the reviewer's stop signal, a closed/merged PR, an inactivity timeout (the reviewer went quiet), or the user ending the session — it does not poll indefinitely.
 - Respect the user if they ask to stop watching at any point.
 - Do not lower the poll interval below a minute; frequent polling wastes API calls without helping.
 
@@ -130,7 +130,7 @@ The default stop pattern matches phrases like "no comments", "no further comment
 
 - If `gh` is not authenticated, tell the user to run `gh auth login`.
 - If the PR number is invalid, report the error clearly and stop.
-- If the `reply` or `fix` step fails for a round, report the error and ask the user whether to retry or stop rather than silently looping.
+- If the `reply` or `fix` step fails for a round, report the error and stop rather than silently looping.
 
 ## Script Reference
 
