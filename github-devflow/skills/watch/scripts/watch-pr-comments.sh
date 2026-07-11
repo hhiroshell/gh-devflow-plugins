@@ -86,6 +86,11 @@ fi
 # not a bot, so it is matched by its signature rather than by author type.
 CODE_REVIEW_MATCH='((.comments.nodes[-1].body // "") | test("github-devflow:code-review"; "i"))'
 
+# A thread where this skill previously parked a question (github-devflow:watch)
+# and the user has since replied: some comment carries the watch signature, and
+# the latest comment carries no plugin signature (i.e. it is the user's answer).
+ANSWERED_QUESTION_MATCH='(([.comments.nodes[].body // ""] | any(test("github-devflow:watch"; "i"))) and (((.comments.nodes[-1].body // "") | test("github-devflow:"; "i")) | not))'
+
 # jq selector deciding whether a thread's latest comment counts as "AI reviewer".
 # jq selector deciding whether a summary/issue comment's author (bound to .login) counts.
 case "$AUTHOR_FILTER" in
@@ -93,23 +98,26 @@ case "$AUTHOR_FILTER" in
         # Detect bots by actor type first (reliable for GitHub Copilot, whose
         # login "copilot-pull-request-reviewer" has no "[bot]" suffix), and fall
         # back to the "[bot]" login convention used by other reviewers. Also pick
-        # up this plugin's own /code-review threads by signature.
-        THREAD_SELECT="(((.comments.nodes[-1].author.__typename // \"\") == \"Bot\") or ((.comments.nodes[-1].author.login // \"\") | endswith(\"[bot]\")) or $CODE_REVIEW_MATCH)"
+        # up this plugin's own /code-review threads by signature, and threads where
+        # the user has answered a parked question.
+        THREAD_SELECT="(((.comments.nodes[-1].author.__typename // \"\") == \"Bot\") or ((.comments.nodes[-1].author.login // \"\") | endswith(\"[bot]\")) or $CODE_REVIEW_MATCH or $ANSWERED_QUESTION_MATCH)"
         AUTHOR_SELECT='(((.type // "") == "Bot") or ((.login // "") | endswith("[bot]")))'
         ;;
     any)
         # Any author, but skip threads whose latest comment is already one of our
-        # own replies (avoids re-processing what reply/fix/watch already handled).
-        # /code-review threads are included because their signature is not in the
-        # excluded set.
+        # own replies or a still-unanswered parked question (avoids re-processing
+        # what reply/fix/watch already handled). /code-review threads and answered
+        # questions are included because their latest comment carries no such
+        # signature.
         THREAD_SELECT='(((.comments.nodes[-1].body // "") | test("github-devflow:(reply|fix|watch)"; "i")) | not)'
         # The "review complete" signal is only honored from bot reviewers, even in
         # "any" mode, so a human comment (or our own reply) can't stop the watch early.
         AUTHOR_SELECT='(((.type // "") == "Bot") or ((.login // "") | endswith("[bot]")))'
         ;;
     *)
-        # A specific reviewer login, plus this plugin's own /code-review threads.
-        THREAD_SELECT="(((.comments.nodes[-1].author.login // \"\") == \"$AUTHOR_FILTER\") or $CODE_REVIEW_MATCH)"
+        # A specific reviewer login, plus this plugin's own /code-review threads and
+        # threads where the user has answered a parked question.
+        THREAD_SELECT="(((.comments.nodes[-1].author.login // \"\") == \"$AUTHOR_FILTER\") or $CODE_REVIEW_MATCH or $ANSWERED_QUESTION_MATCH)"
         AUTHOR_SELECT="((.login // \"\") == \"$AUTHOR_FILTER\")"
         ;;
 esac
