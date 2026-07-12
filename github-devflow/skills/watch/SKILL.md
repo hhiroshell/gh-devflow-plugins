@@ -94,7 +94,7 @@ Keep a **running tally across all rounds** — replies posted, fixes committed (
 
 A `timeout` means the poll window elapsed with no new activity. Do **not** stop immediately — a reviewer can be slow, and one poll window is only a few minutes. Re-invoke **Step 2** to keep watching, and give up only once the reviewer has been continuously quiet for the **grace period**.
 
-- Default grace period: **about 30 minutes**. Track how long the reviewer has been quiet by summing the `waitedSeconds` each consecutive `timeout` reports (roughly 4–5 windows).
+- Default grace period: **about 10 minutes**. Track how long the reviewer has been quiet by summing the `waitedSeconds` each consecutive `timeout` reports (roughly 1–2 windows).
 - **Reset** the elapsed-quiet time to zero whenever a round produces activity (a `threads` result). The grace period applies to *continuous* silence, not total watch time.
 - Once the grace period is exhausted with no activity, go to **Step 5** to finish. AI reviewers such as Copilot often do not re-review new commits unless their review is re-requested — call this out in the summary so the user can re-request the review on GitHub and run `/watch` again.
 
@@ -120,7 +120,7 @@ Draw it from the running tally kept across rounds (Step 3) and cover the whole w
 
 ### Loop Safety
 
-- The loop stops on the reviewer's stop signal, a closed/merged PR, the reviewer staying quiet through the grace period (~30 min of continuous inactivity), or the user ending the session — it does not poll indefinitely.
+- The loop stops on the reviewer's stop signal, a closed/merged PR, the reviewer staying quiet through the grace period (~10 min of continuous inactivity), or the user ending the session — it does not poll indefinitely.
 - Respect the user if they ask to stop watching at any point.
 - Do not lower the poll interval below a minute; frequent polling wastes API calls without helping.
 
