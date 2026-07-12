@@ -153,7 +153,7 @@ Draw it from the running tally kept across rounds (Step 3) and cover the whole w
 
 ### Stop Signal Tuning
 
-The default stop pattern matches phrases like "no comments", "no further comments", "no issues found", and "LGTM" in reviewer summary/issue comments. If a specific reviewer uses different wording, pass a custom `--stop-pattern` (see Script Reference).
+The default stop pattern matches phrases like "no comments", "no new comments" (Copilot's wording is "…generated no new comments"), "no further comments", "no issues found", and "LGTM" in reviewer summary/issue comments. If a specific reviewer uses different wording, pass a custom `--stop-pattern` (see Script Reference).
 
 ### Error Handling
 

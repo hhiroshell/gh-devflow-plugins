@@ -50,7 +50,11 @@ shift || true
 INTERVAL=180
 MAX_WAIT=480
 AUTHOR_FILTER="bot"
-STOP_PATTERN='(no (more |further |additional |remaining )?(comments|feedback|issues|suggestions|concerns))|(^|[^a-z])lgtm([^a-z]|$)|looks good to me|no issues found|nothing to (comment|add)'
+# Matches reviewer "done" phrases like "no comments", "no new comments"
+# (Copilot's wording: "...generated no new comments"), "no further/additional
+# comments", "no issues found", "LGTM". The "(\w+ )?" allows one qualifier word
+# between "no" and the noun.
+STOP_PATTERN='(no (\w+ )?(comments|feedback|issues|suggestions|concerns))|(^|[^a-z])lgtm([^a-z]|$)|looks good to me|no issues found|nothing to (comment|add)'
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
