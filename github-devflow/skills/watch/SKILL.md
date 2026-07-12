@@ -1,13 +1,13 @@
 ---
 description: This skill should be used when the user asks to "watch a PR", "watch PR #123", "watch for AI review comments", "auto-handle AI review", or "babysit this PR through review", or wants to continuously monitor a pull request for AI reviewer (bot) comments and automatically reply to and fix them until the reviewer reports no further comments.
-argument-hint: "<pr-number>"
+argument-hint: "<pr-number> [--mode request-review|single|poll]"
 disable-model-invocation: true
 allowed-tools: Bash, Read, Write, Edit, Grep, Glob
 ---
 
 # GitHub PR AI-Review Watcher
 
-Continuously watch a pull request for review comments from AI reviewers — bot accounts such as GitHub Copilot or `coderabbitai[bot]`, as well as this plugin's own `/code-review` skill. Each time new comments appear, reply to them and apply fixes by driving the `reply` and `fix` skills, then keep watching. Stop when the reviewer signals the review is complete (e.g. a summary comment matching "there are no comments"), the PR is closed/merged, or the reviewer stays quiet through a grace period (see Step 4).
+Continuously watch a pull request for review comments from AI reviewers — bot accounts such as GitHub Copilot or `coderabbitai[bot]`, as well as this plugin's own `/code-review` skill. Each time new comments appear, reply to them and apply fixes by driving the `reply` and `fix` skills, then keep watching. The `--mode` argument tunes the loop — re-request the reviewer each round, run a single cycle, or plain polling (see Loop modes). Stop when the reviewer signals the review is complete (e.g. a summary comment matching "there are no comments"), the PR is closed/merged, or the reviewer stays quiet through a grace period (see Step 4).
 
 This skill orchestrates a loop; the actual reply and fix work follows the `reply` and `fix` skills' documented workflows (read and execute their `SKILL.md` files) rather than reimplementing them.
 
@@ -21,11 +21,22 @@ A review thread is **actionable** when it is unresolved and one of the following
 
 Once `reply`/`fix` respond, the latest comment is one of their signed replies, so the thread stops being actionable. A still-**unanswered** parked question (latest comment is the `github-devflow:watch` question) is intentionally **not** actionable — it waits for the user. The `--author-filter` option narrows or widens the bot side of this (see Script Reference); `/code-review` threads and answered questions are detected in every mode.
 
+## Loop modes
+
+The optional `--mode` argument selects how the loop behaves after each handled round (default `poll`):
+
+| Mode | Behavior |
+|------|----------|
+| `poll` | Keep polling across windows; wait out the grace period before ending on inactivity (Step 4). **Default.** |
+| `request-review` | Like `poll`, but at the end of every round, re-request the reviewer (e.g. GitHub Copilot) so it re-reviews the pushed fixes. Use when the reviewer does not re-review new commits on its own. |
+| `single` | Run one poll-and-handle cycle, then finish — no re-polling and no grace period. |
+
 ## Helper Scripts
 
 | Script | Location | Purpose |
 |--------|----------|---------|
 | `watch-pr-comments.sh` | `skills/watch/scripts/` | Poll the PR until there are actionable AI-reviewer threads, a stop signal, a closed PR, or a timeout |
+| `rerequest-review.sh` | `skills/watch/scripts/` | Re-request the PR's bot reviewer(s) (e.g. Copilot) so they re-review. Used only in `request-review` mode |
 | `fetch-review-threads.sh` | `scripts/` (plugin root) | Fetch PR review threads. Wrapped by `watch-pr-comments.sh`; also used directly by the `reply`/`fix` workflows |
 | `post-reply.sh` | `scripts/` (plugin root) | Post replies to threads. Used by the `reply`/`fix` workflows, and directly by this skill (`--skill watch`) to park questions for the user |
 
@@ -35,7 +46,7 @@ Once `reply`/`fix` respond, the latest comment is one of their signed replies, s
 
 ### Step 1: Validate Input
 
-Confirm a PR number was provided as `$ARGUMENTS`. If missing, ask the user which PR to watch. Verify `gh` is authenticated (`gh auth status`); if not, tell the user to run `gh auth login`.
+Parse `$ARGUMENTS` into the **PR number** and the optional **`--mode`** (`request-review`, `single`, or `poll`; default `poll` — see Loop modes). If the PR number is missing, ask the user which PR to watch. Pass only the PR number to the helper scripts. Verify `gh` is authenticated (`gh auth status`); if not, tell the user to run `gh auth login`.
 
 ### Step 2: Poll for Activity
 
@@ -86,13 +97,29 @@ The question's `github-devflow:watch` signature becomes the thread's latest comm
 
 If any questions were posted this round, tell the user which threads await a reply — include each comment URL returned by `post-reply.sh` (the `comment.url` field). For example: "Posted 2 questions on PR #123 — reply on these threads and I'll apply your decision on the next check: <url1>, <url2>."
 
-After the fix pass pushes, return to **Step 2** to watch for the reviewer's next round. If the reviewer re-reviews within the poll window, handle that round; if the window elapses with no new activity, Step 4 keeps waiting through the grace period before ending. When the user replies to a parked question, a later round detects it as an *answered question* and applies the fix.
+After the fix pass pushes, proceed according to the loop mode:
+
+- **`request-review`**: re-request the reviewer so it re-reviews the new commits, then return to **Step 2**:
+
+  ```bash
+  bash ${CLAUDE_PLUGIN_ROOT}/skills/watch/scripts/rerequest-review.sh $PR_NUMBER
+  ```
+
+  Report the reviewers re-requested (from the script's `requested` field); if it returns `errors`, surface them but keep watching.
+- **`poll`**: return to **Step 2**.
+- **`single`**: go to **Step 5** to finish — do not poll again.
+
+When the user replies to a parked question, a later round detects it as an *answered question* and applies the fix.
 
 Keep a **running tally across all rounds** — replies posted, fixes committed (with SHAs), issues created, and questions parked (with URLs) — so the end-of-watch summary in Step 5 can cover the whole session.
 
 ### Step 4: Handle Timeout (grace period)
 
-A `timeout` means the poll window elapsed with no new activity. Do **not** stop immediately — a reviewer can be slow, and one poll window is only a few minutes. Re-invoke **Step 2** to keep watching, and give up only once the reviewer has been continuously quiet for the **grace period**.
+A `timeout` means the poll window elapsed with no new activity.
+
+In **`single`** mode, do not wait — go straight to **Step 5** to finish.
+
+In **`poll`** and **`request-review`** modes, do **not** stop immediately — a reviewer can be slow, and one poll window is only a few minutes. Re-invoke **Step 2** to keep watching, and give up only once the reviewer has been continuously quiet for the **grace period**.
 
 - Default grace period: **about 10 minutes**. Track how long the reviewer has been quiet by summing the `waitedSeconds` each consecutive `timeout` reports (roughly 1–2 windows).
 - **Reset** the elapsed-quiet time to zero whenever a round produces activity (a `threads` result). The grace period applies to *continuous* silence, not total watch time.
@@ -162,4 +189,20 @@ Output: JSON with a "status" field:
   stop     -> matched (the reviewer comment that ended the watch)
   closed   -> prState
   timeout  -> waitedSeconds
+```
+
+### rerequest-review.sh
+
+```
+Usage: rerequest-review.sh <pr-number> [--reviewer <login>]...
+
+Options:
+  --reviewer <login>   Reviewer login to re-request (repeatable). When given,
+                       auto-detection is skipped.
+
+Without --reviewer, re-requests the bot reviewers previously requested on the
+PR (auto-detected from its review-request history; e.g. "Copilot"), falling
+back to "Copilot" if none are found.
+
+Output: JSON { requested: [logins], skipped: [logins], errors: [strings] }
 ```
