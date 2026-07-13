@@ -54,6 +54,19 @@ A Claude Code plugin for GitHub issue-driven development workflows. Plan and imp
 - Replies to each thread reporting the action taken
 - Pushes all commits and provides a summary of actions
 
+### Watch AI Review (`/watch`)
+
+- Continuously watches a PR for comments from AI reviewers — bot accounts such as GitHub Copilot and CodeRabbit, plus this plugin's own `/code-review`
+- Detects AI reviewers by actor type (`Bot`), so it catches GitHub Copilot even though its login has no `[bot]` suffix
+- Handles each new round automatically by driving the `/reply` and `/fix` workflows
+- When a fix is uncertain, posts the question on the review thread (instead of blocking) and picks it up once you reply on GitHub
+- Ends when the reviewer reports no further comments (e.g. Copilot's "generated no new comments"), the PR is closed/merged, or the reviewer goes quiet through a grace period
+- Reports an activity summary of the whole session back in Claude Code — not on the PR
+- `--mode` selects the loop behavior:
+  - `poll` (default): keep polling, waiting out a grace period before ending on inactivity
+  - `request-review`: re-request the reviewer each round so it re-reviews the pushed fixes (Copilot does not re-review new commits on its own)
+  - `single`: run one poll-and-handle cycle, then stop
+
 ## Prerequisites
 
 - [GitHub CLI](https://cli.github.com/) (`gh`) installed and authenticated
@@ -153,6 +166,24 @@ This will:
 5. Reply to each thread with the action taken
 6. Push all commits to the remote branch
 
+### Watch a PR for AI Review
+
+```
+/watch <pr-number> [--mode request-review|single|poll]
+```
+
+Example:
+```
+/watch 456 --mode request-review
+```
+
+This will:
+1. Poll PR #456 for comments from AI reviewers (Copilot, CodeRabbit, or `/code-review`)
+2. For each new round, drive `/reply` and `/fix` to respond and apply changes
+3. Post a question on the thread (rather than blocking) when a fix is uncertain, and apply it after you answer on GitHub
+4. In `request-review` mode, re-request the reviewer after each round so it re-reviews the pushed fixes
+5. Stop when the reviewer reports no further comments, the PR closes, or it goes quiet — then report a session summary in Claude Code
+
 ## Recommended Workflow
 
 1. **Plan**: Use `/plan <number>` to analyze an issue and generate an implementation plan
@@ -161,6 +192,7 @@ This will:
 4. **Code Review**: Use `/code-review <pr-number>` to get a multi-perspective code review
 5. **Reply**: Use `/reply <pr-number>` to respond to PR review comments
 6. **Fix**: Use `/fix <pr-number>` to fix code, create issues, or dismiss review comments
+7. **Watch** (optional): Use `/watch <pr-number>` to automatically handle AI-reviewer comments in a loop until the review is complete
 
 ## Skills
 
@@ -171,6 +203,7 @@ This will:
 | `/code-review` | Multi-perspective code review of a PR using 8 specialized agents |
 | `/reply` | Reply to unresolved review threads on a pull request |
 | `/fix` | Fix code, create issues, or dismiss PR review comments |
+| `/watch` | Watch a PR for AI-reviewer comments and auto-drive reply + fix in a loop |
 
 ## Troubleshooting
 

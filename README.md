@@ -50,6 +50,10 @@ Replies to unresolved review threads on a pull request. Fetches threads where th
 
 Processes unresolved PR review threads by autonomously deciding and executing the appropriate action for each: fixing the code (with auto-commit), creating a GitHub issue for out-of-scope problems, or dismissing minor suggestions. Replies to each thread reporting the action taken, then pushes all commits.
 
+### `/github-devflow:watch <pr-number> [--mode request-review|single|poll]`
+
+Continuously watches a pull request for AI-reviewer comments — bot reviewers such as GitHub Copilot and CodeRabbit, plus the plugin's own `/code-review` — and handles each new round by driving `/reply` and `/fix` automatically. When a fix is uncertain, it posts the question on the review thread so you can answer inline on GitHub instead of blocking. Watching ends when the reviewer reports no further comments, the PR is closed/merged, or the reviewer goes quiet; an activity summary of the whole session is reported back in Claude Code. The `--mode` argument selects the loop behavior: `poll` (default, wait out a grace period), `request-review` (re-request the reviewer each round so it re-reviews the pushed fixes), or `single` (one cycle then stop).
+
 ## Recommended Workflow
 
 1. **Plan**: Use `/github-devflow:plan <number>` to analyze an issue and generate an implementation plan
@@ -58,6 +62,7 @@ Processes unresolved PR review threads by autonomously deciding and executing th
 4. **Code Review**: Use `/github-devflow:code-review <pr-number>` to get a multi-perspective code review
 5. **Reply**: Use `/github-devflow:reply <pr-number>` to respond to PR review comments
 6. **Fix**: Use `/github-devflow:fix <pr-number>` to fix code, create issues, or dismiss review comments
+7. **Watch** (optional): Use `/github-devflow:watch <pr-number>` to automatically handle AI-reviewer comments in a loop — it drives reply and fix each round until the review is complete
 
 ## Prerequisites
 
