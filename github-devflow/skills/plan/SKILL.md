@@ -31,8 +31,26 @@ Parse the response to understand:
   - Feedback on previous approaches
   - Questions that need to be addressed in the plan
 
-### Step 2: Analyze the Codebase
+### Step 2: Detect Mode — Initial Plan vs. Replan
 
+Search the comment thread for an existing plan comment posted by this skill (identified by the signature `github-devflow:plan` in the body).
+
+**If an existing plan comment is found AND reviewer comments exist after it → Replan mode.**
+Otherwise → Initial plan mode.
+
+In replan mode, extract:
+- The existing plan comment's **database ID** and its full body text
+- All reviewer comments posted **after** the existing plan comment (these are the replan instructions)
+
+To get a comment's database ID, list issue comments via the API:
+
+```bash
+gh api repos/{owner}/{repo}/issues/$ARGUMENTS/comments
+```
+
+### Step 3: Analyze Requirements
+
+**Initial plan mode:**
 Based on the issue requirements, explore the codebase to understand:
 
 1. **Relevant files**: Use Glob and Grep to find files related to the issue
@@ -42,7 +60,10 @@ Based on the issue requirements, explore the codebase to understand:
 
 Focus the analysis on areas directly relevant to the issue. Avoid broad codebase exploration unless necessary.
 
-### Step 3: Generate Implementation Plan
+**Replan mode:**
+Review all reviewer comments after the existing plan. Understand what changes are requested: new requirements, corrections, clarifications, or rejected approaches. Perform any additional codebase exploration needed to address the feedback.
+
+### Step 4: Generate Implementation Plan
 
 Create a structured implementation plan in Markdown format with these sections:
 
@@ -79,12 +100,44 @@ List of files that will need to be created or modified:
 *Plan generated with [Claude Code](https://claude.ai/code) - github-devflow:plan*
 ```
 
-### Step 4: Post Plan as Comment
+### Step 5: Post or Update the Plan
 
-Post the generated plan directly to the GitHub issue:
+**Initial plan mode:**
+
+Post the generated plan as a new comment:
 
 ```bash
 gh issue comment $ARGUMENTS --body "<plan-content>"
+```
+
+**Replan mode:**
+
+First, edit the original plan comment in-place with the updated plan:
+
+```bash
+gh api repos/{owner}/{repo}/issues/comments/<comment-id> \
+  --method PATCH \
+  --field body="<updated-plan-content>"
+```
+
+Then, post a follow-up comment that summarizes what changed between the old plan and the new plan:
+
+```markdown
+## Plan Updated
+
+Revised the plan in response to reviewer feedback. Summary of changes:
+
+### Added
+- <description of newly added sections or steps>
+
+### Changed
+- <description of modified sections or steps, with before/after if helpful>
+
+### Removed
+- <description of removed sections or steps>
+
+---
+*Plan updated with [Claude Code](https://claude.ai/code) - github-devflow:plan*
 ```
 
 After posting, report success with the issue URL so the user can review the plan on GitHub.
@@ -98,6 +151,11 @@ After posting, report success with the issue URL so the user can review the plan
 - Check for any acceptance criteria or requirements mentioned
 - Look for related issues or PRs mentioned
 - Note any disagreements or open questions in the comment thread that may affect the plan
+
+### Replan Detection
+- Identify the existing plan comment by the `github-devflow:plan` signature in the comment body
+- Only treat comments posted **after** the existing plan comment as reviewer feedback
+- If multiple plan comments exist (e.g., from earlier replans), use the **most recent** one as the baseline
 
 ### Codebase Exploration
 - Start with targeted searches based on issue keywords
