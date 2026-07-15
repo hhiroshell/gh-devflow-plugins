@@ -91,7 +91,7 @@ query {
           comments(first: 100) {
             nodes {
               id
-              author { login }
+              author { login __typename }
               body
               createdAt
             }
@@ -135,10 +135,14 @@ if [[ "$FILTER_RESOLVED" == "true" ]]; then
 fi
 
 if [[ -n "$FILTER_SKILL" ]]; then
-    # Filter out threads where the latest comment contains this specific skill's signature
+    # Filter out threads where the latest comment contains this specific skill's
+    # signature, and threads parked for a human reply by the /watch skill (latest
+    # comment carries "github-devflow:watch"). A parked question is awaiting the
+    # user, so a skill filtering its own work should not act on it.
     THREADS=$(echo "$THREADS" | jq --arg skill "$FILTER_SKILL" '
         [.[] | select(
-            ((.comments.nodes[-1].body | test("github-devflow:" + $skill; "i")) | not)
+            (((.comments.nodes[-1].body // "") | test("github-devflow:" + $skill; "i")) | not)
+            and (((.comments.nodes[-1].body // "") | test("github-devflow:watch"; "i")) | not)
         )]
     ')
 fi

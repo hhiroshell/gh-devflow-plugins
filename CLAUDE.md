@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This repository contains Claude Code plugins for GitHub-driven development workflows. The main plugin is `github-devflow`, which provides skills for planning, implementing, reviewing, fixing, and replying to GitHub issues and PRs.
+This repository contains Claude Code plugins for GitHub-driven development workflows. The main plugin is `github-devflow`, which provides skills for planning, implementing, reviewing, fixing, and replying to GitHub issues and PRs, plus a `/watch` skill that loops over those to auto-handle AI-reviewer comments.
 
 ## Repository Structure
 
@@ -23,6 +23,8 @@ gh-devflow-plugins/
         ├── implement/            # /implement - Implement issues and create PRs
         ├── reply/                # /reply - Reply to PR review threads
         ├── fix/                  # /fix - Fix code, create issues, or dismiss review comments
+        ├── watch/                # /watch - Watch a PR for AI-reviewer comments and auto reply+fix in a loop
+        │   └── scripts/          # Skill-specific scripts (watch-pr-comments.sh)
         └── code-review/          # /code-review - Multi-perspective PR review
             └── scripts/          # Skill-specific scripts (fetch-pr-diff.sh, post-review.sh)
 ```
@@ -48,17 +50,19 @@ All agents output findings as JSON with a standard schema: `{perspective, findin
 
 ### Helper Scripts
 Shell scripts handle GitHub API interactions via the `gh` CLI:
-- **Shared scripts** (`github-devflow/scripts/`): `fetch-review-threads.sh` (fetch PR threads with filtering), `post-reply.sh` (post replies with skill signatures)
-- **Code-review scripts** (`github-devflow/skills/code-review/scripts/`): `fetch-pr-diff.sh` (fetch PR diff and metadata), `post-review.sh` (post reviews with line-specific comments)
+- **Shared scripts** (`github-devflow/scripts/`): `fetch-review-threads.sh` (fetch PR threads with filtering; includes comment-author `__typename` for bot detection and skips threads parked for a human reply by `/watch`), `post-reply.sh` (post replies with skill signatures)
+- **Code-review scripts** (`github-devflow/skills/code-review/scripts/`): `fetch-pr-diff.sh` (fetch PR diff and metadata), `post-review.sh` (post reviews with line-specific comments; signs each inline comment with `github-devflow:code-review`)
+- **Watch scripts** (`github-devflow/skills/watch/scripts/`): `watch-pr-comments.sh` (poll a PR for actionable AI-reviewer threads, a stop signal, a closed PR, or a timeout), `rerequest-review.sh` (re-request a bot reviewer such as Copilot)
 
 Scripts validate file paths are within `/tmp/github-devflow:*/` for security.
 
 ## Development Notes
 
 - All GitHub operations use the `gh` CLI (requires authentication via `gh auth login`)
-- Most skills should not modify repository files directly; they analyze and post comments. Exceptions: `/implement` creates code and PRs, `/fix` makes code changes to address review feedback
+- Most skills should not modify repository files directly; they analyze and post comments. Exceptions: `/implement` creates code and PRs, `/fix` makes code changes to address review feedback, and `/watch` drives `/fix` so it also modifies code
 - The `/code-review` skill launches 8 reviewer agents in parallel using the Task tool
-- Review signatures include skill identifiers for filtering (e.g., `github-devflow:code-review`)
+- The `/watch` skill orchestrates a loop over the `reply` and `fix` workflows; it detects AI reviewers by actor type (`Bot`) plus the `github-devflow:code-review` signature, and ends on a reviewer "done" signal, a closed PR, or an inactivity grace period. `--mode` selects the loop behavior (`poll` / `request-review` / `single`)
+- Review signatures include skill identifiers for filtering (e.g., `github-devflow:code-review`, `github-devflow:watch` for questions parked awaiting a human reply)
 
 ## Release Flow
 

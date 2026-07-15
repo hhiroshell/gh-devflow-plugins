@@ -101,11 +101,15 @@ fi
 
 # Build the review comments array for the API
 # Transform from our format to GitHub's API format
-# Supports optional start_line for multi-line comments
-API_COMMENTS=$(echo "$COMMENTS_JSON" | jq '[.[] | {
+# Supports optional start_line for multi-line comments.
+# Each comment body gets the code-review signature so downstream skills (e.g.
+# /watch) can identify these threads even though they are posted under a user
+# account rather than a bot.
+COMMENT_SIGNATURE=$'\n\n---\n*Review comment generated with [Claude Code](https://claude.ai/code) - github-devflow:code-review*'
+API_COMMENTS=$(echo "$COMMENTS_JSON" | jq --arg sig "$COMMENT_SIGNATURE" '[.[] | {
     path: .path,
     line: .line,
-    body: .body,
+    body: (.body + $sig),
     side: "RIGHT"
 } + (if .start_line then {start_line: .start_line, start_side: "RIGHT"} else {} end)]')
 
