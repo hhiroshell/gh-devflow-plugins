@@ -139,22 +139,31 @@ check_pr_closed() {
 }
 
 # Look for a reviewer summary/issue comment signalling the review is complete.
+#
+# Only the reviewer's *latest* summary/review comment is considered: the watch
+# stops only when that most recent comment matches the stop pattern. An older
+# "no comments" message must not end the watch once the reviewer has posted
+# newer feedback after it.
 check_stop_sentinel() {
     local owner="$1" repo="$2"
     local issue_comments reviews match
 
     issue_comments=$(gh api "repos/$owner/$repo/issues/$PR_NUMBER/comments" --paginate \
-        --jq '[.[] | {login: .user.login, type: .user.type, body: .body}]' 2>/dev/null || echo '[]')
+        --jq '[.[] | {login: .user.login, type: .user.type, body: .body, createdAt: .created_at}]' 2>/dev/null || echo '[]')
     reviews=$(gh api "repos/$owner/$repo/pulls/$PR_NUMBER/reviews" --paginate \
-        --jq '[.[] | {login: .user.login, type: .user.type, body: .body}]' 2>/dev/null || echo '[]')
+        --jq '[.[] | {login: .user.login, type: .user.type, body: .body, createdAt: .submitted_at}]' 2>/dev/null || echo '[]')
 
+    # Take the reviewer's most recent non-empty summary/review comment (by
+    # timestamp) and stop only if *it* matches the stop pattern.
     match=$(printf '%s\n%s\n' "$issue_comments" "$reviews" | jq -s --arg pat "$STOP_PATTERN" '
         add
         | [ .[]
             | select(.body != null and .body != "")
-            | select('"$AUTHOR_SELECT"')
-            | select(.body | test($pat; "i")) ]
-        | first // empty
+            | select(.createdAt != null)
+            | select('"$AUTHOR_SELECT"') ]
+        | sort_by(.createdAt)
+        | last
+        | select(. != null and (.body | test($pat; "i")))
     ')
 
     if [[ -n "$match" ]]; then
